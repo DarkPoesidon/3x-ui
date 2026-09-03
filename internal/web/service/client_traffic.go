@@ -129,6 +129,7 @@ func (s *ClientService) ResetAllClientTraffics(inboundSvc *InboundService, id in
 	})
 	if err == nil {
 		inboundSvc.resetAllMtprotoQuotas()
+		inboundSvc.resetAllAnytlsQuotas()
 	}
 	return err
 }

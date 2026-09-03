@@ -484,7 +484,7 @@ func (s *SubService) getInboundsBySubId(subId string) ([]*model.Inbound, error) 
 		JOIN client_inbounds ON client_inbounds.inbound_id = inbounds.id
 		JOIN clients ON clients.id = client_inbounds.client_id
 		WHERE
-			inbounds.protocol in ('vmess','vless','trojan','shadowsocks','hysteria','wireguard','amneziawg','mtproto')
+			inbounds.protocol in ('vmess','vless','trojan','shadowsocks','hysteria','wireguard','amneziawg','mtproto','anytls')
 			AND clients.sub_id = ? AND inbounds.enable = ?
 	)`, subId, true).Order("sub_sort_index ASC").Order("id ASC").Find(&inbounds).Error
 	if err != nil {
@@ -633,6 +633,8 @@ func (s *SubService) GetLink(inbound *model.Inbound, email string) string {
 		return s.genHysteriaLink(inbound, email)
 	case "mtproto":
 		return s.genMtprotoLink(inbound, email)
+	case "anytls":
+		return s.genAnytlsLink(inbound, email)
 	case "wireguard":
 		return s.genWireguardLink(inbound, email)
 	case "amneziawg":
@@ -833,6 +835,37 @@ func (s *SubService) genMtprotoLink(inbound *model.Inbound, email string) string
 		"secret": resolved.Secret,
 	}
 	return buildLinkWithParams("tg://proxy", params, "")
+}
+
+// genAnytlsLink builds a per-client anytls:// share link. The client password
+// is the userinfo, and sni/insecure ride in the query per docs/uri_scheme.md.
+func (s *SubService) genAnytlsLink(inbound *model.Inbound, email string) string {
+	if inbound.Protocol != model.AnyTLS {
+		return ""
+	}
+	client, ok := s.clientForLink(inbound, email)
+	if !ok || client.Password == "" {
+		return ""
+	}
+	settings := s.linkSettings(inbound)
+	address := s.resolveInboundAddress(inbound)
+
+	sni, _ := settings["sni"].(string)
+	sni = strings.TrimSpace(sni)
+	params := make(map[string]string)
+	if sni != "" {
+		params["sni"] = sni
+	}
+	// Without a real certificate the node serves an ephemeral self-signed one,
+	// which no client accepts unless the link says so.
+	certFile, _ := settings["certFile"].(string)
+	keyFile, _ := settings["keyFile"].(string)
+	if strings.TrimSpace(certFile) == "" || strings.TrimSpace(keyFile) == "" {
+		params["insecure"] = "1"
+	}
+
+	link := fmt.Sprintf("anytls://%s@%s", encodeUserinfo(client.Password), joinHostPort(address, inbound.Port))
+	return buildLinkWithParams(link, params, s.genRemark(inbound, email, "", ""))
 }
 
 // Protocol link generators are intentionally ordered as:

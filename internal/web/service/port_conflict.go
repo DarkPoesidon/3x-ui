@@ -26,7 +26,7 @@ func inboundTransports(protocol model.Protocol, streamSettings, settings string)
 	switch protocol {
 	case model.Hysteria, model.WireGuard, model.AmneziaWG:
 		return transportUDP
-	case model.MTProto:
+	case model.MTProto, model.AnyTLS:
 		return transportTCP
 	}
 

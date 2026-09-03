@@ -79,6 +79,10 @@ func (s *InboundService) applyTrafficMutationBatch(b *trafficMutationBatch) bool
 			s.applyLocalMtproto(plan.inbound.Id)
 			continue
 		}
+		if plan.inbound.Protocol == model.AnyTLS {
+			s.applyLocalAnytls(plan.inbound.Id)
+			continue
+		}
 		if plan.inbound.Protocol == model.AmneziaWG {
 			s.applyLocalAmneziaWG(plan.inbound.Id)
 			continue

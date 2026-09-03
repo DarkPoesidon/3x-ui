@@ -650,6 +650,7 @@ func (s *InboundService) ResetClientTrafficByEmail(clientEmail string) error {
 	})
 	if err == nil {
 		s.resetMtprotoClientQuota(clientEmail)
+		s.resetAnytlsClientQuota(clientEmail)
 	}
 	return err
 }
@@ -663,6 +664,7 @@ func (s *InboundService) ResetClientTraffic(id int, clientEmail string) (needRes
 	})
 	if err == nil {
 		s.resetMtprotoClientQuota(clientEmail)
+		s.resetAnytlsClientQuota(clientEmail)
 		if resetInbound != nil && resetInbound.NodeID != nil {
 			if rt, rterr := s.runtimeFor(resetInbound); rterr == nil {
 				if e := rt.ResetClientTraffic(context.Background(), resetInbound, clientEmail); e != nil {
@@ -786,6 +788,7 @@ func (s *InboundService) ResetAllTraffics() error {
 	if err == nil {
 		s.propagateResetAllTrafficsToNodes()
 		s.resetAllMtprotoQuotas()
+		s.resetAllAnytlsQuotas()
 	}
 	return err
 }

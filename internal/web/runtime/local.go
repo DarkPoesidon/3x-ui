@@ -10,6 +10,7 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawgnet"
+	"github.com/mhsanaei/3x-ui/v3/internal/anytls"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/mtproto"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
@@ -48,6 +49,13 @@ func (l *Local) withAPI(fn func(api *xray.XrayAPI) error) error {
 }
 
 func (l *Local) AddInbound(_ context.Context, ib *model.Inbound) error {
+	if ib.Protocol == model.AnyTLS {
+		inst, ok := anytls.InstanceFromInbound(ib)
+		if !ok {
+			return nil
+		}
+		return anytls.GetManager().Ensure(inst)
+	}
 	if ib.Protocol == model.MTProto {
 		inst, ok := mtproto.InstanceFromInbound(ib)
 		if !ok {
@@ -94,6 +102,10 @@ func (l *Local) AddInbound(_ context.Context, ib *model.Inbound) error {
 }
 
 func (l *Local) DelInbound(_ context.Context, ib *model.Inbound) error {
+	if ib.Protocol == model.AnyTLS {
+		anytls.GetManager().Remove(ib.Id)
+		return nil
+	}
 	if ib.Protocol == model.MTProto {
 		mtproto.GetManager().Remove(ib.Id)
 		return nil
@@ -114,6 +126,9 @@ func (l *Local) DelInbound(_ context.Context, ib *model.Inbound) error {
 }
 
 func (l *Local) UpdateInbound(ctx context.Context, oldIb, newIb *model.Inbound) error {
+	if oldIb.Protocol == model.AnyTLS || newIb.Protocol == model.AnyTLS {
+		return l.updateAnytlsInbound(ctx, oldIb, newIb)
+	}
 	if oldIb.Protocol == model.MTProto || newIb.Protocol == model.MTProto {
 		return l.updateMtprotoInbound(ctx, oldIb, newIb)
 	}
@@ -125,6 +140,31 @@ func (l *Local) UpdateInbound(ctx context.Context, oldIb, newIb *model.Inbound) 
 		return nil
 	}
 	return l.AddInbound(ctx, newIb)
+}
+
+// updateAnytlsInbound skips the Del+Add the xray path uses: Remove would drop
+// the fingerprint state that lets Ensure keep the node and its live connections.
+func (l *Local) updateAnytlsInbound(ctx context.Context, oldIb, newIb *model.Inbound) error {
+	if oldIb.Protocol == model.AnyTLS && newIb.Protocol != model.AnyTLS {
+		anytls.GetManager().Remove(oldIb.Id)
+		if !newIb.Enable {
+			return nil
+		}
+		return l.AddInbound(ctx, newIb)
+	}
+	if oldIb.Protocol != model.AnyTLS {
+		_ = l.DelInbound(ctx, oldIb)
+	}
+	if !newIb.Enable {
+		anytls.GetManager().Remove(newIb.Id)
+		return nil
+	}
+	inst, ok := anytls.InstanceFromInbound(newIb)
+	if !ok {
+		anytls.GetManager().Remove(newIb.Id)
+		return nil
+	}
+	return anytls.GetManager().Ensure(inst)
 }
 
 // updateMtprotoInbound applies an inbound update without the Del+Add sequence
