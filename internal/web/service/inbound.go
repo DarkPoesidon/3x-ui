@@ -1046,7 +1046,7 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 	// Secure client ID
 	for _, client := range clients {
 		switch inbound.Protocol {
-		case "trojan":
+		case "trojan", "anytls":
 			if client.Password == "" {
 				return inbound, false, common.NewError("empty client ID")
 			}

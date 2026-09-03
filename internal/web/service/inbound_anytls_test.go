@@ -156,3 +156,26 @@ func TestNormalizeXrayPortStripsWhenRoutingIsOff(t *testing.T) {
 		t.Fatalf("outboundTag must be stripped: %s", ib.Settings)
 	}
 }
+
+// An anytls client carries a password and no UUID, which the shared client
+// validation rejected as an empty client ID -- the panel refused to create any
+// anytls inbound at all.
+func TestAddInboundAcceptsPasswordOnlyAnytlsClients(t *testing.T) {
+	if err := database.InitDB(filepath.Join(t.TempDir(), "x-ui.db")); err != nil {
+		t.Fatalf("init db: %v", err)
+	}
+	t.Cleanup(func() { _ = database.CloseDB() })
+
+	ib := &model.Inbound{
+		UserId: 1, Remark: "anytls", Tag: "inbound-anytls", Listen: "127.0.0.1", Port: 24567,
+		Protocol: model.AnyTLS, Enable: true,
+		Settings: anytlsSettings(`{"email":"alice","password":"pw-alice","enable":true}`),
+	}
+	created, _, err := (&InboundService{}).AddInbound(ib)
+	if err != nil {
+		t.Fatalf("anytls inbound must be accepted with a password-only client: %v", err)
+	}
+	if created == nil || created.Id == 0 {
+		t.Fatal("expected the inbound to be stored")
+	}
+}
