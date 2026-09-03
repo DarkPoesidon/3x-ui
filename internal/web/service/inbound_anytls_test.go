@@ -27,12 +27,18 @@ func TestDesiredAnytlsInstancesSkipsNodeAssignedInbounds(t *testing.T) {
 
 	nodeID := 7
 	rows := []*model.Inbound{
-		{UserId: 1, Remark: "local", Tag: "local", Port: 24101, Protocol: model.AnyTLS, Enable: true,
-			Settings: anytlsSettings(`{"email":"alice","password":"pw-a","enable":true}`)},
-		{UserId: 1, Remark: "on-node", Tag: "on-node", Port: 24102, Protocol: model.AnyTLS, Enable: true, NodeID: &nodeID,
-			Settings: anytlsSettings(`{"email":"bob","password":"pw-b","enable":true}`)},
-		{UserId: 1, Remark: "disabled", Tag: "disabled", Port: 24103, Protocol: model.AnyTLS, Enable: false,
-			Settings: anytlsSettings(`{"email":"carol","password":"pw-c","enable":true}`)},
+		{
+			UserId: 1, Remark: "local", Tag: "local", Port: 24101, Protocol: model.AnyTLS, Enable: true,
+			Settings: anytlsSettings(`{"email":"alice","password":"pw-a","enable":true}`),
+		},
+		{
+			UserId: 1, Remark: "on-node", Tag: "on-node", Port: 24102, Protocol: model.AnyTLS, Enable: true, NodeID: &nodeID,
+			Settings: anytlsSettings(`{"email":"bob","password":"pw-b","enable":true}`),
+		},
+		{
+			UserId: 1, Remark: "disabled", Tag: "disabled", Port: 24103, Protocol: model.AnyTLS, Enable: false,
+			Settings: anytlsSettings(`{"email":"carol","password":"pw-c","enable":true}`),
+		},
 	}
 	for _, ib := range rows {
 		if err := database.GetDB().Create(ib).Error; err != nil {

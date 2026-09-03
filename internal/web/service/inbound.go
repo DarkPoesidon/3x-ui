@@ -867,7 +867,8 @@ func settingsRouteXrayPort(parsed map[string]any) int {
 
 // localPortIsFree reports whether the loopback port can be bound right now.
 func localPortIsFree(port int) bool {
-	l, err := net.Listen("tcp", net.JoinHostPort("127.0.0.1", strconv.Itoa(port)))
+	var lc net.ListenConfig
+	l, err := lc.Listen(context.Background(), "tcp", net.JoinHostPort("127.0.0.1", strconv.Itoa(port)))
 	if err != nil {
 		return false
 	}
