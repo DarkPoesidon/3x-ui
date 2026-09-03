@@ -15,6 +15,10 @@ RUN npm run build
 FROM golang:1.27-alpine AS builder
 WORKDIR /app
 ARG TARGETARCH
+# Where the AnyTLS sidecar binaries are published; defaults inside DockerInit.sh
+# to an anytls-rs under this panel's own GitHub owner.
+ARG ANYTLS_REPO=""
+ENV ANYTLS_REPO=$ANYTLS_REPO
 
 RUN apk --no-cache --update add \
   build-base \

@@ -125,6 +125,11 @@ func (m *Manager) ensureLocked(inst Instance) error {
 			delete(m.procs, inst.Id)
 		}
 	}
+	// Say plainly that the sidecar is missing: the raw exec error names a path
+	// with no hint that the release is expected to ship this binary.
+	if _, err := os.Stat(GetBinaryPath()); err != nil {
+		return fmt.Errorf("anytls: sidecar binary %s is missing, so this inbound cannot start: %w", GetBinaryName(), err)
+	}
 	apiPort, err := FreeLocalPort()
 	if err != nil {
 		return err

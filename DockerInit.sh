@@ -25,17 +25,17 @@ case $1 in
         FNAME="amd64"
         ;;
 esac
-# The AnyTLS sidecar must come from a build carrying the panel's multi-user
+# The AnyTLS sidecar must come from a build carrying this panel's multi-user
 # management API; upstream ssrlive/anytls-rs has no such API and would leave
-# every anytls inbound unusable. Point this at your own fork's releases.
-ANYTLS_REPO="${ANYTLS_REPO:-REPLACE-ME/anytls-rs}"
-if [ "$ANYTLS_REPO" = "REPLACE-ME/anytls-rs" ]; then
-    echo "DockerInit: set ANYTLS_REPO to the owner/repo publishing anytls-server releases" >&2
-    exit 1
-fi
+# every anytls inbound unusable. Default to an anytls-rs beside this panel under
+# the same GitHub owner, taken from the module path so a rebranded fork points
+# at its own org without editing anything.
+ANYTLS_OWNER=$(sed -n 's#^module github.com/\([^/]*\)/.*#\1#p' go.mod | head -n 1)
+ANYTLS_REPO="${ANYTLS_REPO:-${ANYTLS_OWNER}/anytls-rs}"
 ANYTLS_VER=$(curl -sfL "https://api.github.com/repos/${ANYTLS_REPO}/releases/latest" | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p' | head -n 1)
 if [ -z "$ANYTLS_VER" ]; then
-    echo "DockerInit: could not resolve the latest ${ANYTLS_REPO} release tag" >&2
+    echo "DockerInit: no release found at github.com/${ANYTLS_REPO}." >&2
+    echo "DockerInit: publish the patched anytls-rs there, or set ANYTLS_REPO to the repo that has it." >&2
     exit 1
 fi
 MTG_MULTI_VER=$(curl -sfL "https://api.github.com/repos/mhsanaei/mtg-multi/releases/latest" | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p' | head -n 1)

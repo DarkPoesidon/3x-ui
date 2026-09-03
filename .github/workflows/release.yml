@@ -170,9 +170,10 @@ jobs:
           # github.com — the host the downloads need anyway — because api.github.com
           # has 503'd whole release runs while asset downloads kept working.
           # anytls-server (AnyTLS sidecar) ships one zip per Rust target triple.
-          # It must come from a build carrying the panel's multi-user management
-          # API, so this points at a fork, never upstream ssrlive/anytls-rs.
-          ANYTLS_REPO="${ANYTLS_REPO:-REPLACE-ME/anytls-rs}"
+          # It must come from a build carrying this panel's multi-user management
+          # API, so it defaults to an anytls-rs owned by whoever owns this panel
+          # repo - never upstream ssrlive/anytls-rs, which has no such API.
+          ANYTLS_REPO="${ANYTLS_REPO:-${{ github.repository_owner }}/anytls-rs}"
           case "${{ matrix.platform }}" in
             amd64)  ANYTLS_TARGET="x86_64-unknown-linux-musl" ;;
             arm64)  ANYTLS_TARGET="aarch64-unknown-linux-musl" ;;
@@ -182,9 +183,8 @@ jobs:
             *)      ANYTLS_TARGET="" ;;
           esac
           if [ -n "$ANYTLS_TARGET" ]; then
-            if [ "$ANYTLS_REPO" = "REPLACE-ME/anytls-rs" ]; then echo "set ANYTLS_REPO to the owner/repo publishing anytls-server releases"; exit 1; fi
             ANYTLS_VER=$(curl -sf $CURL_RETRY -o /dev/null -w '%{redirect_url}' "https://github.com/${ANYTLS_REPO}/releases/latest" | sed -n 's#.*/releases/tag/##p')
-            if [ -z "$ANYTLS_VER" ]; then echo "could not resolve the latest ${ANYTLS_REPO} release tag"; exit 1; fi
+            if [ -z "$ANYTLS_VER" ]; then echo "no release found at github.com/${ANYTLS_REPO} - publish the patched anytls-rs there, or set ANYTLS_REPO"; exit 1; fi
             curl -sfLRO $CURL_RETRY "https://github.com/${ANYTLS_REPO}/releases/download/${ANYTLS_VER}/anytls-${ANYTLS_TARGET}.zip"
             unzip -o -j "anytls-${ANYTLS_TARGET}.zip" anytls-server -d .
             mv anytls-server "anytls-server-linux-${{ matrix.platform }}"
@@ -322,10 +322,9 @@ jobs:
           # download and unpack it instead of compiling. The tag comes from the
           # release-page redirect on github.com — not api.github.com, whose
           # outages have failed release runs while asset downloads kept working.
-          $ANYTLS_REPO = if ($env:ANYTLS_REPO) { $env:ANYTLS_REPO } else { "REPLACE-ME/anytls-rs" }
-          if ($ANYTLS_REPO -eq "REPLACE-ME/anytls-rs") { throw "set ANYTLS_REPO to the owner/repo publishing anytls-server releases" }
+          $ANYTLS_REPO = if ($env:ANYTLS_REPO) { $env:ANYTLS_REPO } else { "${{ github.repository_owner }}/anytls-rs" }
           $ANYTLS_VER = (curl.exe -sf --retry 5 --retry-all-errors --retry-delay 3 -o NUL -w '%{redirect_url}' "https://github.com/$ANYTLS_REPO/releases/latest") -replace '^.*/releases/tag/', ''
-          if (-not $ANYTLS_VER) { throw "could not resolve the latest $ANYTLS_REPO release tag" }
+          if (-not $ANYTLS_VER) { throw "no release found at github.com/$ANYTLS_REPO - publish the patched anytls-rs there, or set ANYTLS_REPO" }
           curl.exe -sfLRO --retry 5 --retry-all-errors --retry-delay 3 "https://github.com/$ANYTLS_REPO/releases/download/$ANYTLS_VER/anytls-x86_64-pc-windows-msvc.zip"
           Expand-Archive -Path "anytls-x86_64-pc-windows-msvc.zip" -DestinationPath "anytls-tmp" -Force
           Move-Item "anytls-tmp/anytls-server.exe" "anytls-server-windows-amd64.exe"
