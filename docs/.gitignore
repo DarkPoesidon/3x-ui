@@ -27,5 +27,3 @@ next-env.d.ts
 # npm (this project uses pnpm)
 package-lock.json
 
-# claude code (local settings/plans; keep shared project instructions)
-/.claude/*

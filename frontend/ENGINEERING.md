@@ -1,6 +1,5 @@
-# frontend/CLAUDE.md
-
-Frontend agent guide. Full detail: `frontend/README.md` and the root
+# Frontend engineering guide
+ Full detail: `frontend/README.md` and the root
 `CONTRIBUTING.md` ("Working on the frontend"). This is the short version.
 
 ## What this is
@@ -32,7 +31,7 @@ The `@` import alias maps to `src/`.
   Design's `Form` store.
 - Function components + hooks only; no class components.
 - Comments in committed TS/TSX: 2 lines MAX per comment block, spent on the
-  *why* a name cannot hold (same rule as root CLAUDE.md). HTML comments are fine.
+  *why* a name cannot hold (same rule as docs/engineering-guide.md). HTML comments are fine.
 - TS strict; oxlint's `typescript/no-explicit-any` is an error. Build forms with `useZodForm` +
   `FormField` from `@/components/form/rhf` (wrap the tree in `FormProvider`);
   validate through the `zodResolver` or per-field
@@ -69,4 +68,4 @@ Only standalone bundles (login/subpage) need a new `.html` + `src/entries/*` +
   `<Component>.stories.tsx` with `tags: ['autodocs']`; document props via
   `argTypes` / `parameters.docs` string metadata, never JSDoc.
 - After `npm run build`, RESTART `go run .` (see the XUI_DEBUG gotcha in root
-  CLAUDE.md) before checking the panel.
+  docs/engineering-guide.md) before checking the panel.

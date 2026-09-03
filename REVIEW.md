@@ -12,10 +12,10 @@ Mark every finding with exactly one of these, at the start of the finding:
 | Marker | Severity | Use it for |
 | --- | --- | --- |
 | 🔴 | Important | A defect this pull request introduces or makes worse, in one of the classes under "What Important means here". Worth fixing before it merges. |
-| 🟡 | Nit | Style, naming, refactoring, and an ordinary `CLAUDE.md` violation the change introduces — a source comment block over two lines, a fix larger than the bug it removes, a test `CLAUDE.md` rejects outright. |
+| 🟡 | Nit | Style, naming, refactoring, and an ordinary the engineering guide violation the change introduces — a source comment block over two lines, a fix larger than the bug it removes, a test the engineering guide rejects outright. |
 | 🟣 | Pre-existing | A real bug you hit while reading that this pull request neither introduced nor made worse. |
 
-Not every `CLAUDE.md` rule is a nit. The three listed below — the dispatch
+Not every the engineering guide rule is a nit. The three listed below — the dispatch
 rule, the migration rule, the endpoint chain — are Important, because each one
 passes every local test and breaks a real deployment.
 
@@ -81,7 +81,7 @@ surface — still 🟣, but open the summary with it.
   Those files being STALE after a source change is reportable; their style
   is not.
 - Missing tests for getters, constants, renames or pure map lookups —
-  `CLAUDE.md` rejects such tests outright.
+  the engineering guide rejects such tests outright.
 - A missing or unreferenced i18n key.
   `frontend/src/test/i18n-dead-keys.test.ts` pins the 13 locale files in
   `internal/web/translation/` in both directions, so the `frontend` job is

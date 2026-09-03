@@ -1,6 +1,6 @@
-# CLAUDE.md
+# Engineering guide
 
-Operational guide for AI agents working in this repo. Long-form human docs:
+Operational guide for anyone working in this repo. Long-form human docs:
 `CONTRIBUTING.md` (setup, testing philosophy) and `frontend/README.md`.
 Read those before large changes. This file is the short, must-follow version.
 For a deep navigation map (request lifecycle, cron-job table, symptom → file
@@ -63,7 +63,7 @@ file locations when it can answer in one hop.
   - `middleware/`, `entity/`, `global/`, `session/` (CSRF), `network/`,
     `runtime/` (master/sub-node over mTLS), `websocket/`.
   - `locale/` + `translation/` — i18n, 13 embedded locale JSON files.
-- `frontend/` — React + TS source (see `frontend/CLAUDE.md`).
+- `frontend/` — React + TS source (see `frontend/ENGINEERING.md`).
 - `tools/openapigen/` — Go generator that emits frontend types + Zod/JSON schemas
   into `frontend/src/generated/` from Go structs. The OpenAPI doc itself
   (`frontend/public/openapi.json`) is assembled from those + `endpoints.ts` by
@@ -130,7 +130,7 @@ file locations when it can answer in one hop.
   `XUI_DB_TYPE`+`XUI_DB_DSN`, `XRAY_E2E_BINARY` or `XUI_SCALE_TEST` is set — a
   green `go test ./...` does not mean those paths ran.
 
-## Frontend conventions (summary; full version in frontend/CLAUDE.md)
+## Frontend conventions (summary; full version in frontend/ENGINEERING.md)
 - Ant Design 6 only — no Tailwind/shadcn. Targeted tweaks, not rewrites.
 - TS strict; `@typescript-eslint/no-explicit-any` is an error. Zod schemas in
   `src/schemas/` are the source of truth; infer types with `z.infer`, never
