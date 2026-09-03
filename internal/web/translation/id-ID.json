@@ -674,7 +674,7 @@
         "anytlsSni": "SNI TLS",
         "anytlsSniHint": "Nama yang disajikan node dan diminta klien. Dengan sertifikat, harus cocok dengan salah satu namanya.",
         "anytlsCertFile": "Berkas sertifikat",
-        "anytlsCertHint": "Path sertifikat full-chain di server ini. Tanpa sertifikat dan kunci, node menyajikan sertifikat self-signed dan tautan ditandai insecure.",
+        "anytlsCertHint": "Path sertifikat full-chain di server tempat inbound ini berjalan. Tanpa sertifikat dan kunci, node menyajikan sertifikat self-signed dan tautan ditandai insecure.",
         "anytlsKeyFile": "Berkas kunci privat",
         "anytlsForward": "URL cadangan untuk probe",
         "anytlsForwardHint": "Tujuan koneksi yang gagal autentikasi, agar port menjawab prober seperti server web biasa. Kosongkan untuk meneruskan ke SNI yang diminta klien.",

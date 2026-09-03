@@ -3,6 +3,8 @@ import { Protocols } from '@/schemas/primitives';
 /*
  * Protocols whose inbounds can live on a sub-node (the "Deploy To" set).
  * Everything else (http, mixed, tunnel, tun, mtproto) is panel-local only.
+ * anytls qualifies because a pushed inbound lands on the node with no nodeId,
+ * so the node's own sidecar loop reconciles and meters it there.
  * Shared by the inbound form's Deploy To selector and the clone dialog's
  * target picker so the two surfaces can never drift apart.
  */
@@ -13,4 +15,5 @@ export const NODE_ELIGIBLE_PROTOCOLS: Readonly<Record<string, true>> = {
   [Protocols.SHADOWSOCKS]: true,
   [Protocols.HYSTERIA]: true,
   [Protocols.WIREGUARD]: true,
+  [Protocols.ANYTLS]: true,
 };

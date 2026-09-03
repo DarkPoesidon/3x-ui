@@ -674,7 +674,7 @@
         "anytlsSni": "TLS SNI",
         "anytlsSniHint": "Düğümün sunduğu ve istemcilerin istediği sunucu adı. Sertifika varsa adlarından biriyle eşleşmelidir.",
         "anytlsCertFile": "Sertifika dosyası",
-        "anytlsCertHint": "Bu sunucudaki tam zincir sertifikanın yolu. Sertifika ve anahtar birlikte yoksa düğüm kendinden imzalı sertifika sunar ve bağlantılar güvensiz olarak işaretlenir.",
+        "anytlsCertHint": "Bu gelenin çalıştığı sunucudaki tam zincir sertifikanın yolu. Sertifika ve anahtar birlikte yoksa düğüm kendinden imzalı sertifika sunar ve bağlantılar güvensiz olarak işaretlenir.",
         "anytlsKeyFile": "Özel anahtar dosyası",
         "anytlsForward": "Sonda için yedek URL",
         "anytlsForwardHint": "Kimlik doğrulaması başarısız olan bağlantının yönlendirileceği yer; böylece port bir sondaya sıradan web sunucusu gibi yanıt verir. Boşsa istenen SNI'ye yönlendirilir.",

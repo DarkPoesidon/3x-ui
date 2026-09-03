@@ -93,7 +93,7 @@ func TestInboundCanHostFallbacks_StaysTcpOnly(t *testing.T) {
 // frontend/src/pages/inbounds/form/InboundFormModal.tsx -- keep both lists
 // in sync if a protocol's node-eligibility ever changes.
 func TestIsNodeEligibleProtocol(t *testing.T) {
-	eligible := []model.Protocol{model.VLESS, model.VMESS, model.Trojan, model.Shadowsocks, model.Hysteria, model.WireGuard}
+	eligible := []model.Protocol{model.VLESS, model.VMESS, model.Trojan, model.Shadowsocks, model.Hysteria, model.WireGuard, model.AnyTLS}
 	for _, p := range eligible {
 		if !isNodeEligibleProtocol(p) {
 			t.Errorf("isNodeEligibleProtocol(%q) = false, want true", p)

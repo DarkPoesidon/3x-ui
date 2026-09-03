@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"slices"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -864,6 +865,16 @@ func settingsRouteXrayPort(parsed map[string]any) int {
 	return 0
 }
 
+// localPortIsFree reports whether the loopback port can be bound right now.
+func localPortIsFree(port int) bool {
+	l, err := net.Listen("tcp", net.JoinHostPort("127.0.0.1", strconv.Itoa(port)))
+	if err != nil {
+		return false
+	}
+	_ = l.Close()
+	return true
+}
+
 func parseRouteXrayPort(settings string) int {
 	if settings == "" {
 		return 0
@@ -917,6 +928,14 @@ func (s *InboundService) normalizeMtprotoXrayPort(inbound *model.Inbound, oldSet
 	port := parseRouteXrayPort(oldSettings)
 	if port <= 0 {
 		port = settingsRouteXrayPort(parsed)
+		// A port on a brand-new inbound was chosen elsewhere -- a master
+		// seeding one it pushed to this node -- and can already be taken here,
+		// where a bridge that cannot bind routes no traffic at all. Only probed
+		// on a new inbound: on an edit the port is ours and already bound.
+		if port > 0 && oldSettings == "" && !localPortIsFree(port) {
+			logger.Warning("sidecar egress: port", port, "is already in use here, allocating another")
+			port = 0
+		}
 	}
 	if port <= 0 {
 		allocated, err := mtproto.FreeLocalPort()

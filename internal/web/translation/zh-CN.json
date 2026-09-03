@@ -674,7 +674,7 @@
         "anytlsSni": "TLS SNI",
         "anytlsSniHint": "节点提供、客户端请求的服务器名。使用证书时必须与其名称之一匹配。",
         "anytlsCertFile": "证书文件",
-        "anytlsCertHint": "本机完整证书链的路径。未同时提供证书和私钥时，节点使用自签名证书，分享链接会标记为 insecure。",
+        "anytlsCertHint": "运行该入站的服务器上完整证书链的路径。未同时提供证书和私钥时，节点使用自签名证书，分享链接会标记为 insecure。",
         "anytlsKeyFile": "私钥文件",
         "anytlsForward": "探测回落地址",
         "anytlsForwardHint": "认证失败的连接转发到这里，使端口像普通网站一样回应主动探测。留空则转发到客户端请求的 SNI。",

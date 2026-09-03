@@ -674,7 +674,7 @@
         "anytlsSni": "TLS SNI",
         "anytlsSniHint": "Tên máy chủ mà node đưa ra và client yêu cầu. Khi có chứng chỉ, tên này phải khớp một trong các tên của nó.",
         "anytlsCertFile": "Tệp chứng chỉ",
-        "anytlsCertHint": "Đường dẫn chứng chỉ full-chain trên máy chủ này. Thiếu chứng chỉ hoặc khóa, node dùng chứng chỉ tự ký và liên kết bị đánh dấu insecure.",
+        "anytlsCertHint": "Đường dẫn chứng chỉ full-chain trên máy chủ chạy inbound này. Thiếu chứng chỉ hoặc khóa, node dùng chứng chỉ tự ký và liên kết bị đánh dấu insecure.",
         "anytlsKeyFile": "Tệp khóa riêng",
         "anytlsForward": "URL dự phòng khi bị dò",
         "anytlsForwardHint": "Nơi chuyển tiếp kết nối xác thực thất bại, để cổng trả lời máy dò như một web server bình thường. Để trống sẽ chuyển tới SNI mà client yêu cầu.",

@@ -674,7 +674,7 @@
         "anytlsSni": "SNI de TLS",
         "anytlsSniHint": "Nombre que presenta el nodo y que piden los clientes. Con certificado debe coincidir con uno de sus nombres.",
         "anytlsCertFile": "Archivo de certificado",
-        "anytlsCertHint": "Ruta al certificado de cadena completa en este servidor. Sin certificado y clave, el nodo sirve un certificado autofirmado y los enlaces se marcan como inseguros.",
+        "anytlsCertHint": "Ruta al certificado de cadena completa en el servidor donde se ejecuta esta entrada. Sin certificado y clave, el nodo sirve un certificado autofirmado y los enlaces se marcan como inseguros.",
         "anytlsKeyFile": "Archivo de clave privada",
         "anytlsForward": "URL de reserva ante sondeos",
         "anytlsForwardHint": "Adónde se reenvía una conexión que falla la autenticación, para que el puerto responda a un sondeo como un servidor web normal. Vacío lo reenvía al SNI solicitado.",

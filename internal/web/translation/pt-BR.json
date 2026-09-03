@@ -674,7 +674,7 @@
         "anytlsSni": "SNI do TLS",
         "anytlsSniHint": "Nome que o nó apresenta e que os clientes pedem. Com certificado, precisa corresponder a um dos nomes dele.",
         "anytlsCertFile": "Arquivo de certificado",
-        "anytlsCertHint": "Caminho do certificado full-chain neste servidor. Sem certificado e chave, o nó usa um certificado autoassinado e os links são marcados como inseguros.",
+        "anytlsCertHint": "Caminho do certificado full-chain no servidor onde este inbound roda. Sem certificado e chave, o nó usa um certificado autoassinado e os links são marcados como inseguros.",
         "anytlsKeyFile": "Arquivo de chave privada",
         "anytlsForward": "URL de fallback para sondagens",
         "anytlsForwardHint": "Para onde vai uma conexão que falha na autenticação, de modo que a porta responda a um sondador como um servidor web comum. Vazio encaminha para o SNI pedido.",

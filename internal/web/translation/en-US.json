@@ -674,7 +674,7 @@
         "anytlsSni": "TLS SNI",
         "anytlsSniHint": "Server name the node presents and clients ask for. With a certificate it must match one of its names.",
         "anytlsCertFile": "Certificate file",
-        "anytlsCertHint": "Path to the full-chain certificate on this server. Without both certificate and key the node serves a self-signed certificate, and share links are marked insecure.",
+        "anytlsCertHint": "Path to the full-chain certificate on the server this inbound runs on. Without both certificate and key the node serves a self-signed certificate, and share links are marked insecure.",
         "anytlsKeyFile": "Private key file",
         "anytlsForward": "Probe fallback URL",
         "anytlsForwardHint": "Where a connection that fails authentication is relayed, so the port answers a prober like an ordinary web server. Empty relays it to the SNI the client asked for.",
