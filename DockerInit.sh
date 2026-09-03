@@ -27,11 +27,9 @@ case $1 in
 esac
 # The AnyTLS sidecar must come from a build carrying this panel's multi-user
 # management API; upstream ssrlive/anytls-rs has no such API and would leave
-# every anytls inbound unusable. Default to an anytls-rs beside this panel under
-# the same GitHub owner, taken from the module path so a rebranded fork points
-# at its own org without editing anything.
-ANYTLS_OWNER=$(sed -n 's#^module github.com/\([^/]*\)/.*#\1#p' go.mod | head -n 1)
-ANYTLS_REPO="${ANYTLS_REPO:-${ANYTLS_OWNER}/anytls-rs}"
+# every anytls inbound unusable. Override with ANYTLS_REPO (also a Docker build
+# arg) to build against a different fork.
+ANYTLS_REPO="${ANYTLS_REPO:-DarkPoesidon/anytls-rs}"
 ANYTLS_VER=$(curl -sfL "https://api.github.com/repos/${ANYTLS_REPO}/releases/latest" | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p' | head -n 1)
 if [ -z "$ANYTLS_VER" ]; then
     echo "DockerInit: no release found at github.com/${ANYTLS_REPO}." >&2
