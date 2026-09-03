@@ -6,6 +6,7 @@ import type {
 import type { InboundSettings } from '@/schemas/protocols/inbound';
 import {
   AmneziawgClientSchema,
+  AnytlsClientSchema,
   HysteriaClientSchema,
   MtprotoClientSchema,
   ShadowsocksClientSchema,
@@ -271,6 +272,8 @@ function clientSchemaForProtocol(protocol: string): z.ZodType | null {
       return MtprotoClientSchema;
     case 'amneziawg':
       return AmneziawgClientSchema;
+    case 'anytls':
+      return AnytlsClientSchema;
     default:
       return null;
   }

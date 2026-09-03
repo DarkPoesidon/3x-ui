@@ -5,6 +5,7 @@ import type { AmneziawgInboundSettings } from '@/schemas/protocols/inbound/amnez
 import type { HttpInboundSettings } from '@/schemas/protocols/inbound/http';
 import type { HysteriaClient, HysteriaInboundSettings } from '@/schemas/protocols/inbound/hysteria';
 import type { MixedInboundSettings } from '@/schemas/protocols/inbound/mixed';
+import type { AnytlsInboundSettings } from '@/schemas/protocols/inbound/anytls';
 import type { MtprotoClient, MtprotoInboundSettings } from '@/schemas/protocols/inbound/mtproto';
 import type {
   ShadowsocksClient,
@@ -225,6 +226,18 @@ export function generateMtprotoSecret(domain: string): string {
   return `ee${RandomUtil.randomSeq(32, { type: 'hex' })}${domainToHex(domain)}`;
 }
 
+// A new AnyTLS inbound starts with no certificate: the node then serves an
+// ephemeral self-signed one, and the share link is marked insecure to match.
+export function createDefaultAnytlsInboundSettings(): AnytlsInboundSettings {
+  return {
+    clients: [],
+    sni: '',
+    certFile: '',
+    keyFile: '',
+    forward: '',
+  };
+}
+
 export function createDefaultMtprotoInboundSettings(): MtprotoInboundSettings {
   return {
     fakeTlsDomain: 'www.cloudflare.com',
@@ -338,7 +351,8 @@ export type AnyInboundSettings =
   | TunnelInboundSettings
   | WireguardInboundSettings
   | MtprotoInboundSettings
-  | AmneziawgInboundSettings;
+  | AmneziawgInboundSettings
+  | AnytlsInboundSettings;
 
 export function createDefaultInboundSettings(protocol: string): AnyInboundSettings | null {
   switch (protocol) {
@@ -366,6 +380,8 @@ export function createDefaultInboundSettings(protocol: string): AnyInboundSettin
       return createDefaultMtprotoInboundSettings();
     case 'amneziawg':
       return createDefaultAmneziawgInboundSettings();
+    case 'anytls':
+      return createDefaultAnytlsInboundSettings();
     default:
       return null;
   }

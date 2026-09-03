@@ -61,6 +61,7 @@ import {
   HttpFields,
   HysteriaFields,
   MixedFields,
+  AnytlsFields,
   MtprotoFields,
   ShadowsocksFields,
   TunFields,
@@ -793,6 +794,7 @@ export default function InboundFormModal({
       {protocol === Protocols.MIXED && <MixedFields mixedUdpOn={mixedUdpOn} />}
 
       {protocol === Protocols.MTPROTO && <MtprotoFields />}
+      {protocol === Protocols.ANYTLS && <AnytlsFields />}
 
       {protocol === Protocols.SHADOWSOCKS && <ShadowsocksFields isSSWith2022={isSSWith2022} />}
 
@@ -1123,6 +1125,7 @@ export default function InboundFormModal({
                     Protocols.WIREGUARD,
                     Protocols.MTPROTO,
                     Protocols.AMNEZIAWG,
+                    Protocols.ANYTLS,
                   ] as string[]
                 ).includes(protocol) || isFallbackHost
                   ? [

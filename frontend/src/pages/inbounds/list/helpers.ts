@@ -88,6 +88,7 @@ export function isInboundMultiUser(record: { protocol: string; settings: unknown
     case 'trojan':
     case 'hysteria':
     case 'mtproto':
+    case 'anytls':
     case 'wireguard':
     case 'amneziawg':
       return true;

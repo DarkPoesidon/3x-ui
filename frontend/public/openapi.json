@@ -2128,7 +2128,8 @@
               "tunnel",
               "tun",
               "mtproto",
-              "amneziawg"
+              "amneziawg",
+              "anytls"
             ],
             "example": "vless",
             "type": "string"

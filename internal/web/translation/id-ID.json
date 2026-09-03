@@ -670,7 +670,19 @@
         "bytesPerSec": "Byte per detik",
         "bytesPerSecTip": "Batas kecepatan (byte/detik) yang diterapkan pada lalu lintas fallback setelah ambang batas, agar probe tidak dapat memakai server Anda sebagai bandwidth gratis menuju target. 0 = tanpa batas (menonaktifkan arah ini).",
         "burstBytesPerSec": "Byte per detik burst",
-        "burstBytesPerSecTip": "Kelonggaran untuk burst singkat di atas laju tetap (ukuran token-bucket). Jika lebih kecil dari Byte per detik, nilainya dinaikkan agar sama."
+        "burstBytesPerSecTip": "Kelonggaran untuk burst singkat di atas laju tetap (ukuran token-bucket). Jika lebih kecil dari Byte per detik, nilainya dinaikkan agar sama.",
+        "anytlsSni": "SNI TLS",
+        "anytlsSniHint": "Nama yang disajikan node dan diminta klien. Dengan sertifikat, harus cocok dengan salah satu namanya.",
+        "anytlsCertFile": "Berkas sertifikat",
+        "anytlsCertHint": "Path sertifikat full-chain di server ini. Tanpa sertifikat dan kunci, node menyajikan sertifikat self-signed dan tautan ditandai insecure.",
+        "anytlsKeyFile": "Berkas kunci privat",
+        "anytlsForward": "URL cadangan untuk probe",
+        "anytlsForwardHint": "Tujuan koneksi yang gagal autentikasi, agar port menjawab prober seperti server web biasa. Kosongkan untuk meneruskan ke SNI yang diminta klien.",
+        "anytlsPaddingScheme": "Berkas skema padding",
+        "anytlsPaddingSchemeHint": "Berkas skema padding opsional. Klien harus memakai skema yang sama.",
+        "anytlsDebug": "Log debug",
+        "anytlsRouteThroughXray": "Rutekan lewat Xray",
+        "anytlsRouteThroughXrayHint": "Kirim lalu lintas keluar inbound ini melalui jembatan SOCKS loopback di konfigurasi Xray agar aturan routing berlaku."
       },
       "info": {
         "mode": "Mode",

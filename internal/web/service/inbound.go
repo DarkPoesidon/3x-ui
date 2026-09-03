@@ -875,9 +875,9 @@ func parseRouteXrayPort(settings string) int {
 	return settingsRouteXrayPort(parsed)
 }
 
-// normalizeMtprotoXrayPort guarantees a routed mtproto inbound carries a stable
-// loopback egress port in its settings, so the generated Xray SOCKS bridge and
-// the mtg sidecar agree on where mtg dials out. The port is backend-owned: it is
+// normalizeMtprotoXrayPort guarantees a routed sidecar inbound (mtproto or
+// anytls) carries a stable loopback egress port in its settings, so the
+// generated Xray SOCKS bridge and the sidecar agree on where it dials out. The port is backend-owned: it is
 // allocated once when routing is first enabled and preserved across edits
 // (carried over from oldSettings, which wins over any value the client echoed
 // back). When routing is off it — together with the now-inert outbound
@@ -888,7 +888,7 @@ func parseRouteXrayPort(settings string) int {
 // which would otherwise route no traffic and have its mtg metrics skipped (see
 // mtproto_job) — silently losing its accounting.
 func (s *InboundService) normalizeMtprotoXrayPort(inbound *model.Inbound, oldSettings string) error {
-	if inbound.Protocol != model.MTProto {
+	if inbound.Protocol != model.MTProto && inbound.Protocol != model.AnyTLS {
 		return nil
 	}
 	var parsed map[string]any

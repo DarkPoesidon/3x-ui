@@ -670,7 +670,19 @@
           "node": "節點地址",
           "listen": "入站監聽地址",
           "custom": "自訂"
-        }
+        },
+        "anytlsSni": "TLS SNI",
+        "anytlsSniHint": "節點提供、用戶端請求的伺服器名稱。使用憑證時必須與其名稱之一相符。",
+        "anytlsCertFile": "憑證檔案",
+        "anytlsCertHint": "本機完整憑證鏈的路徑。未同時提供憑證與私鑰時，節點使用自簽憑證，分享連結會標記為 insecure。",
+        "anytlsKeyFile": "私鑰檔案",
+        "anytlsForward": "探測回落網址",
+        "anytlsForwardHint": "認證失敗的連線會轉送到這裡，使連接埠像一般網站一樣回應主動探測。留空則轉送到用戶端請求的 SNI。",
+        "anytlsPaddingScheme": "填充方案檔案",
+        "anytlsPaddingSchemeHint": "選用的填充方案檔案，用戶端須使用相同方案。",
+        "anytlsDebug": "偵錯日誌",
+        "anytlsRouteThroughXray": "經 Xray 路由",
+        "anytlsRouteThroughXrayHint": "讓此入站的出站流量經 Xray 設定中的本機 SOCKS 橋接轉送，以套用路由規則。"
       },
       "info": {
         "mode": "模式",

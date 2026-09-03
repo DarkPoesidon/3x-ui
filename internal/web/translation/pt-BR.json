@@ -670,7 +670,19 @@
           "node": "Endereço do nó",
           "listen": "Endereço de escuta do inbound",
           "custom": "Personalizada"
-        }
+        },
+        "anytlsSni": "SNI do TLS",
+        "anytlsSniHint": "Nome que o nó apresenta e que os clientes pedem. Com certificado, precisa corresponder a um dos nomes dele.",
+        "anytlsCertFile": "Arquivo de certificado",
+        "anytlsCertHint": "Caminho do certificado full-chain neste servidor. Sem certificado e chave, o nó usa um certificado autoassinado e os links são marcados como inseguros.",
+        "anytlsKeyFile": "Arquivo de chave privada",
+        "anytlsForward": "URL de fallback para sondagens",
+        "anytlsForwardHint": "Para onde vai uma conexão que falha na autenticação, de modo que a porta responda a um sondador como um servidor web comum. Vazio encaminha para o SNI pedido.",
+        "anytlsPaddingScheme": "Arquivo de esquema de padding",
+        "anytlsPaddingSchemeHint": "Arquivo opcional de esquema de padding. Os clientes precisam usar o mesmo esquema.",
+        "anytlsDebug": "Log de depuração",
+        "anytlsRouteThroughXray": "Rotear pelo Xray",
+        "anytlsRouteThroughXrayHint": "Envia o tráfego de saída deste inbound por uma ponte SOCKS local na configuração do Xray para aplicar as regras de roteamento."
       },
       "info": {
         "mode": "Modo",

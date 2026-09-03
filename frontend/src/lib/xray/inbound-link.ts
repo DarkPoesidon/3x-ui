@@ -842,6 +842,37 @@ export function genMtprotoLink(input: GenMtprotoLinkInput): string {
   return url.toString();
 }
 
+export interface GenAnytlsLinkInput {
+  inbound: Inbound;
+  address: string;
+  port?: number;
+  remark?: string;
+  clientPassword?: string;
+}
+
+// AnyTLS share link: anytls://<password>@<host>:<port>/?sni=&insecure=#<remark>.
+// Must stay in step with the backend's genAnytlsLink and the docs copy.
+export function genAnytlsLink(input: GenAnytlsLinkInput): string {
+  const { inbound, address, port = inbound.port, remark = '', clientPassword = '' } = input;
+  if (inbound.protocol !== 'anytls') return '';
+  if (clientPassword.length === 0) return '';
+
+  const settings = inbound.settings;
+  const params = new URLSearchParams();
+  const sni = (settings.sni ?? '').trim();
+  if (sni.length > 0) params.set('sni', sni);
+  // No certificate means an ephemeral self-signed one, which no client accepts
+  // unless the link says so.
+  const hasCert =
+    (settings.certFile ?? '').trim().length > 0 && (settings.keyFile ?? '').trim().length > 0;
+  if (!hasCert) params.set('insecure', '1');
+
+  const query = params.toString();
+  const host = address.includes(':') && !address.startsWith('[') ? `[${address}]` : address;
+  const link = `anytls://${encodeURIComponent(clientPassword)}@${host}:${port}${query ? `?${query}` : ''}`;
+  return remark ? `${link}#${encodeURIComponent(remark)}` : link;
+}
+
 export interface GenWireguardLinkInput {
   settings: WireguardInboundSettings;
   address: string;
@@ -1314,6 +1345,8 @@ export function getInboundClients(inbound: Inbound): ClientShape[] | null {
       return (inbound.settings.clients ?? []) as ClientShape[];
     case 'mtproto':
       return (inbound.settings.clients ?? []) as ClientShape[];
+    case 'anytls':
+      return (inbound.settings.clients ?? []) as ClientShape[];
     case 'shadowsocks': {
       const isMultiUser = inbound.settings.method !== '2022-blake3-chacha20-poly1305';
       return isMultiUser ? ((inbound.settings.clients ?? []) as ClientShape[]) : null;
@@ -1405,6 +1438,14 @@ export function genLink(input: GenLinkInput): string {
       });
     case 'mtproto':
       return genMtprotoLink({ inbound, address, port, clientSecret: client.secret ?? '' });
+    case 'anytls':
+      return genAnytlsLink({
+        inbound,
+        address,
+        port,
+        remark,
+        clientPassword: client.password ?? '',
+      });
     default:
       return '';
   }

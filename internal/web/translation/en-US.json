@@ -670,7 +670,19 @@
           "node": "Node address",
           "listen": "Inbound listen",
           "custom": "Custom"
-        }
+        },
+        "anytlsSni": "TLS SNI",
+        "anytlsSniHint": "Server name the node presents and clients ask for. With a certificate it must match one of its names.",
+        "anytlsCertFile": "Certificate file",
+        "anytlsCertHint": "Path to the full-chain certificate on this server. Without both certificate and key the node serves a self-signed certificate, and share links are marked insecure.",
+        "anytlsKeyFile": "Private key file",
+        "anytlsForward": "Probe fallback URL",
+        "anytlsForwardHint": "Where a connection that fails authentication is relayed, so the port answers a prober like an ordinary web server. Empty relays it to the SNI the client asked for.",
+        "anytlsPaddingScheme": "Padding scheme file",
+        "anytlsPaddingSchemeHint": "Optional padding scheme file. Clients must use the same scheme.",
+        "anytlsDebug": "Debug logging",
+        "anytlsRouteThroughXray": "Route through Xray",
+        "anytlsRouteThroughXrayHint": "Send this inbound's outbound traffic through a loopback SOCKS bridge in the Xray config so routing rules apply."
       },
       "info": {
         "mode": "Mode",

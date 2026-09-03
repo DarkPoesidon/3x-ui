@@ -25,6 +25,19 @@ case $1 in
         FNAME="amd64"
         ;;
 esac
+# The AnyTLS sidecar must come from a build carrying the panel's multi-user
+# management API; upstream ssrlive/anytls-rs has no such API and would leave
+# every anytls inbound unusable. Point this at your own fork's releases.
+ANYTLS_REPO="${ANYTLS_REPO:-REPLACE-ME/anytls-rs}"
+if [ "$ANYTLS_REPO" = "REPLACE-ME/anytls-rs" ]; then
+    echo "DockerInit: set ANYTLS_REPO to the owner/repo publishing anytls-server releases" >&2
+    exit 1
+fi
+ANYTLS_VER=$(curl -sfL "https://api.github.com/repos/${ANYTLS_REPO}/releases/latest" | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p' | head -n 1)
+if [ -z "$ANYTLS_VER" ]; then
+    echo "DockerInit: could not resolve the latest ${ANYTLS_REPO} release tag" >&2
+    exit 1
+fi
 MTG_MULTI_VER=$(curl -sfL "https://api.github.com/repos/mhsanaei/mtg-multi/releases/latest" | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p' | head -n 1)
 if [ -z "$MTG_MULTI_VER" ]; then
     echo "DockerInit: could not resolve the latest mtg-multi release tag" >&2
@@ -49,6 +62,23 @@ tar -xzf "${MTG_PKG}.tar.gz"
 mv "${MTG_PKG}/mtg-multi" "mtg-linux-${FNAME}"
 rm -rf "${MTG_PKG}" "${MTG_PKG}.tar.gz"
 chmod +x "mtg-linux-${FNAME}"
+# anytls-server ships one zip per Rust target triple; pick the static musl build
+# matching this image's architecture.
+case $FNAME in
+    amd64) ANYTLS_TARGET="x86_64-unknown-linux-musl" ;;
+    arm64) ANYTLS_TARGET="aarch64-unknown-linux-musl" ;;
+    armv7|arm32) ANYTLS_TARGET="armv7-unknown-linux-musleabihf" ;;
+    armv6) ANYTLS_TARGET="arm-unknown-linux-musleabihf" ;;
+    i386) ANYTLS_TARGET="i686-unknown-linux-musl" ;;
+    *) ANYTLS_TARGET="" ;;
+esac
+if [ -n "$ANYTLS_TARGET" ]; then
+    curl -sfLRO "https://github.com/${ANYTLS_REPO}/releases/download/${ANYTLS_VER}/anytls-${ANYTLS_TARGET}.zip"
+    unzip -o -j "anytls-${ANYTLS_TARGET}.zip" anytls-server -d .
+    mv anytls-server "anytls-server-linux-${FNAME}"
+    rm -f "anytls-${ANYTLS_TARGET}.zip" anytls-client
+    chmod +x "anytls-server-linux-${FNAME}"
+fi
 curl -sfLRO https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat
 curl -sfLRO https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat
 curl -sfLRo geoip_IR.dat https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geoip.dat

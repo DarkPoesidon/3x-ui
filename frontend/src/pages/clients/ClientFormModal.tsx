@@ -61,6 +61,7 @@ const MULTI_CLIENT_PROTOCOLS = new Set([
   'wireguard',
   'mtproto',
   'amneziawg',
+  'anytls',
 ]);
 
 const CLIENT_FORM_MODAL_Z_INDEX = 1000;

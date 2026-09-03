@@ -385,6 +385,16 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 		injectMtprotoEgress(xrayConfig, inbound)
 	}
 
+	// Same bridge for opted-in local anytls inbounds, whose node dials out
+	// through it instead of going direct.
+	for i := range inbounds {
+		inbound := inbounds[i]
+		if inbound.Protocol != model.AnyTLS || !inbound.Enable || inbound.NodeID != nil {
+			continue
+		}
+		injectAnytlsEgress(xrayConfig, inbound)
+	}
+
 	// Every AmneziaWG inbound is embedded (internal/amneziawgnet: amneziawg-go
 	// over a gVisor netstack, no kernel module) and relays every peer's
 	// decapsulated traffic into its own loopback SOCKS5 inbound, always on —
@@ -641,6 +651,16 @@ const mtprotoEgressSocksSettings = `{"auth":"noauth","udp":false}`
 // hot-appliable, leaves the stored template untouched, and never forces a full
 // Xray restart. Mirrors injectPanelEgress.
 func injectMtprotoEgress(cfg *xray.Config, inbound *model.Inbound) {
+	injectSidecarEgress(cfg, inbound, "mtproto")
+}
+
+// injectAnytlsEgress is injectMtprotoEgress for an anytls inbound, whose node
+// dials the same kind of loopback SOCKS bridge.
+func injectAnytlsEgress(cfg *xray.Config, inbound *model.Inbound) {
+	injectSidecarEgress(cfg, inbound, "anytls")
+}
+
+func injectSidecarEgress(cfg *xray.Config, inbound *model.Inbound, label string) {
 	var parsed struct {
 		RouteThroughXray bool   `json:"routeThroughXray"`
 		RouteXrayPort    int    `json:"routeXrayPort"`
@@ -655,7 +675,7 @@ func injectMtprotoEgress(cfg *xray.Config, inbound *model.Inbound) {
 	tag := inbound.Tag
 	for i := range cfg.InboundConfigs {
 		if cfg.InboundConfigs[i].Tag == tag {
-			logger.Warning("mtproto egress: inbound tag [", tag, "] already present in generated config, skipping bridge")
+			logger.Warning(label, "egress: inbound tag [", tag, "] already present in generated config, skipping bridge")
 			return
 		}
 	}
@@ -664,12 +684,12 @@ func injectMtprotoEgress(cfg *xray.Config, inbound *model.Inbound) {
 		routing := map[string]any{}
 		if len(cfg.RouterConfig) > 0 {
 			if err := json.Unmarshal(cfg.RouterConfig, &routing); err != nil {
-				logger.Warning("mtproto egress: routing section is unparsable, skipping injection:", err)
+				logger.Warning(label, "egress: routing section is unparsable, skipping injection:", err)
 				return
 			}
 		}
 		if !routingTargetExists(routing, cfg.OutboundConfigs, parsed.OutboundTag) {
-			logger.Warning("mtproto egress: target tag [", parsed.OutboundTag, "] not found, skipping injection")
+			logger.Warning(label, "egress: target tag [", parsed.OutboundTag, "] not found, skipping injection")
 			return
 		}
 		rules, _ := routing["rules"].([]any)
@@ -685,7 +705,7 @@ func injectMtprotoEgress(cfg *xray.Config, inbound *model.Inbound) {
 		routing["rules"] = append([]any{rule}, rules...)
 		newRouting, err := json.Marshal(routing)
 		if err != nil {
-			logger.Warning("mtproto egress: failed to rebuild routing section, skipping injection:", err)
+			logger.Warning(label, "egress: failed to rebuild routing section, skipping injection:", err)
 			return
 		}
 		cfg.RouterConfig = json_util.RawMessage(newRouting)

@@ -670,7 +670,19 @@
         "bytesPerSec": "Saniye Başına Bayt",
         "bytesPerSecTip": "Eşik aşıldıktan sonra fallback trafiğine uygulanan hız sınırı (bayt/sn); böylece sondalar sunucunuzu hedefe ücretsiz bant genişliği olarak kullanamaz. 0 = sınır yok (bu yönü devre dışı bırakır).",
         "burstBytesPerSec": "Saniye Başına Patlama Baytı",
-        "burstBytesPerSecTip": "Sabit hızın üzerindeki kısa patlamalar için pay (token-bucket boyutu). Saniye Başına Bayt değerinden düşükse ona eşitlenecek şekilde yükseltilir."
+        "burstBytesPerSecTip": "Sabit hızın üzerindeki kısa patlamalar için pay (token-bucket boyutu). Saniye Başına Bayt değerinden düşükse ona eşitlenecek şekilde yükseltilir.",
+        "anytlsSni": "TLS SNI",
+        "anytlsSniHint": "Düğümün sunduğu ve istemcilerin istediği sunucu adı. Sertifika varsa adlarından biriyle eşleşmelidir.",
+        "anytlsCertFile": "Sertifika dosyası",
+        "anytlsCertHint": "Bu sunucudaki tam zincir sertifikanın yolu. Sertifika ve anahtar birlikte yoksa düğüm kendinden imzalı sertifika sunar ve bağlantılar güvensiz olarak işaretlenir.",
+        "anytlsKeyFile": "Özel anahtar dosyası",
+        "anytlsForward": "Sonda için yedek URL",
+        "anytlsForwardHint": "Kimlik doğrulaması başarısız olan bağlantının yönlendirileceği yer; böylece port bir sondaya sıradan web sunucusu gibi yanıt verir. Boşsa istenen SNI'ye yönlendirilir.",
+        "anytlsPaddingScheme": "Padding şeması dosyası",
+        "anytlsPaddingSchemeHint": "İsteğe bağlı padding şeması dosyası. İstemciler aynı şemayı kullanmalıdır.",
+        "anytlsDebug": "Hata ayıklama günlüğü",
+        "anytlsRouteThroughXray": "Xray üzerinden yönlendir",
+        "anytlsRouteThroughXrayHint": "Bu gelenin çıkış trafiğini Xray yapılandırmasındaki yerel SOCKS köprüsü üzerinden göndererek yönlendirme kurallarını uygular."
       },
       "info": {
         "mode": "Mod",

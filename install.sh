@@ -1505,6 +1505,9 @@ install_x-ui() {
         # an inbound port with an outdated secret, silently breaking new clients.
         # The freshly installed panel respawns a clean mtg per inbound on start.
         pkill -f 'mtg-linux-[^ ]* run ' > /dev/null 2>&1 || true
+        # Same for anytls-server sidecars, which hold their inbound port with the
+        # user set they were started with.
+        pkill -f 'anytls-server-linux-[^ ]* ' > /dev/null 2>&1 || true
 
         # bin/ is about to be wiped wholesale by the tar extraction below. The
         # release only ships known assets (xray/mtg binaries, the bundled
@@ -1562,12 +1565,23 @@ install_x-ui() {
             mv bin/mtg-linux-$(arch) bin/mtg-linux-arm
             chmod +x bin/mtg-linux-arm
         fi
+        # The panel builds the sidecar name from GOARCH, which is plain "arm"
+        # for every 32-bit ARM variant.
+        if [[ -f bin/anytls-server-linux-$(arch) ]]; then
+            mv bin/anytls-server-linux-$(arch) bin/anytls-server-linux-arm
+            chmod +x bin/anytls-server-linux-arm
+        fi
     fi
     chmod +x x-ui bin/xray-linux-$(arch)
     if [[ -f bin/mtg-linux-arm ]]; then
         chmod +x bin/mtg-linux-arm
     elif [[ -f bin/mtg-linux-$(arch) ]]; then
         chmod +x bin/mtg-linux-$(arch)
+    fi
+    if [[ -f bin/anytls-server-linux-arm ]]; then
+        chmod +x bin/anytls-server-linux-arm
+    elif [[ -f bin/anytls-server-linux-$(arch) ]]; then
+        chmod +x bin/anytls-server-linux-$(arch)
     fi
 
     # Restore anything from the old bin/ that the fresh release doesn't ship

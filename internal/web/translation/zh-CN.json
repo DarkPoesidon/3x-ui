@@ -670,7 +670,19 @@
           "listen": "入站监听地址",
           "custom": "自定义"
         },
-        "verifyPeerCertByName": "按名称验证对端证书"
+        "verifyPeerCertByName": "按名称验证对端证书",
+        "anytlsSni": "TLS SNI",
+        "anytlsSniHint": "节点提供、客户端请求的服务器名。使用证书时必须与其名称之一匹配。",
+        "anytlsCertFile": "证书文件",
+        "anytlsCertHint": "本机完整证书链的路径。未同时提供证书和私钥时，节点使用自签名证书，分享链接会标记为 insecure。",
+        "anytlsKeyFile": "私钥文件",
+        "anytlsForward": "探测回落地址",
+        "anytlsForwardHint": "认证失败的连接转发到这里，使端口像普通网站一样回应主动探测。留空则转发到客户端请求的 SNI。",
+        "anytlsPaddingScheme": "填充方案文件",
+        "anytlsPaddingSchemeHint": "可选的填充方案文件，客户端须使用相同方案。",
+        "anytlsDebug": "调试日志",
+        "anytlsRouteThroughXray": "经 Xray 路由",
+        "anytlsRouteThroughXrayHint": "让该入站的出站流量经 Xray 配置中的本地 SOCKS 桥转发，从而应用路由规则。"
       },
       "info": {
         "mode": "模式",
