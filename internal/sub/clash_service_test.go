@@ -883,3 +883,65 @@ func TestBuildWireguardProxyForClashNoKey(t *testing.T) {
 		t.Fatalf("buildProxy = %v, want nil for a keyless wireguard client", proxy)
 	}
 }
+
+// AnyTLS has no streamSettings, so it never reaches the shared transport path.
+// A Clash client that gets no anytls proxy at all reports "no valid proxies".
+func TestBuildProxy_AnytlsForClash(t *testing.T) {
+	svc := &SubClashService{SubService: &SubService{}}
+	inbound := &model.Inbound{
+		Listen: "203.0.113.1", Port: 8443, Protocol: model.AnyTLS, Remark: "r",
+		Settings: `{"sni":"example.com","certFile":"","keyFile":"","clients":[{"email":"alice","password":"pw-a","enable":true}]}`,
+	}
+	client := model.Client{Email: "alice", Password: "pw-a"}
+
+	proxy := svc.buildProxy(svc.SubService, inbound, client, map[string]any{}, nil)
+	if proxy == nil {
+		t.Fatal("buildProxy returned nil for an anytls inbound")
+	}
+	if proxy["type"] != "anytls" {
+		t.Fatalf("type = %v, want anytls", proxy["type"])
+	}
+	if proxy["password"] != "pw-a" {
+		t.Fatalf("password = %v, want pw-a", proxy["password"])
+	}
+	if proxy["sni"] != "example.com" {
+		t.Fatalf("sni = %v, want example.com", proxy["sni"])
+	}
+	// No certificate means a self-signed one, which mihomo rejects unless told.
+	if proxy["skip-cert-verify"] != true {
+		t.Fatalf("skip-cert-verify = %v, want true", proxy["skip-cert-verify"])
+	}
+	if proxy["port"] != 8443 || proxy["server"] != "203.0.113.1" {
+		t.Fatalf("endpoint = %v:%v", proxy["server"], proxy["port"])
+	}
+}
+
+// With a real certificate the client must verify it, or the whole point of
+// naming the server is lost.
+func TestBuildProxy_AnytlsVerifiesWithARealCertificate(t *testing.T) {
+	svc := &SubClashService{SubService: &SubService{}}
+	inbound := &model.Inbound{
+		Listen: "203.0.113.1", Port: 8443, Protocol: model.AnyTLS, Remark: "r",
+		Settings: `{"sni":"vpn.example.com","certFile":"/c.pem","keyFile":"/k.pem","clients":[{"email":"a","password":"p","enable":true}]}`,
+	}
+	proxy := svc.buildProxy(svc.SubService, inbound, model.Client{Email: "a", Password: "p"}, map[string]any{}, nil)
+	if proxy == nil {
+		t.Fatal("buildProxy returned nil")
+	}
+	if _, present := proxy["skip-cert-verify"]; present {
+		t.Fatalf("a real certificate must be verified, got skip-cert-verify=%v", proxy["skip-cert-verify"])
+	}
+}
+
+// A client with no password cannot authenticate, and an entry without one would
+// make the whole subscription unparseable for some clients.
+func TestBuildProxy_AnytlsSkipsPasswordlessClient(t *testing.T) {
+	svc := &SubClashService{SubService: &SubService{}}
+	inbound := &model.Inbound{
+		Listen: "203.0.113.1", Port: 8443, Protocol: model.AnyTLS, Remark: "r",
+		Settings: `{"clients":[{"email":"a","enable":true}]}`,
+	}
+	if proxy := svc.buildProxy(svc.SubService, inbound, model.Client{Email: "a"}, map[string]any{}, nil); proxy != nil {
+		t.Fatalf("expected no proxy for a passwordless client, got %v", proxy)
+	}
+}

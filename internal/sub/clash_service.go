@@ -232,6 +232,9 @@ func (s *SubClashService) buildProxy(subReq *SubService, inbound *model.Inbound,
 	if inbound.Protocol == model.WireGuard {
 		return s.buildWireguardProxy(subReq, inbound, client, ep)
 	}
+	if inbound.Protocol == model.AnyTLS {
+		return s.buildAnytlsProxy(subReq, inbound, client, ep)
+	}
 
 	network, _ := stream["network"].(string)
 
@@ -299,6 +302,42 @@ func (s *SubClashService) buildProxy(subReq *SubService, inbound *model.Inbound,
 // directly instead of going through streamData/tlsData, because those
 // helpers prune fields (like `allowInsecure` / the salamander obfs
 // block) that the hysteria proxy wants preserved.
+// buildAnytlsProxy emits a mihomo anytls proxy. AnyTLS carries its own TLS and
+// has no streamSettings, so it skips the shared transport/security path.
+func (s *SubClashService) buildAnytlsProxy(subReq *SubService, inbound *model.Inbound, client model.Client, ep map[string]any) map[string]any {
+	if client.Password == "" {
+		return nil
+	}
+	inboundSettings := subReq.linkSettings(inbound)
+
+	proxy := map[string]any{
+		"name":     subReq.endpointRemark(inbound, client.Email, ep, ""),
+		"type":     "anytls",
+		"server":   inbound.Listen,
+		"port":     inbound.Port,
+		"udp":      true,
+		"password": client.Password,
+	}
+
+	sni, _ := inboundSettings["sni"].(string)
+	if sni = strings.TrimSpace(sni); sni != "" {
+		proxy["sni"] = sni
+	}
+
+	// Without a real certificate the node serves an ephemeral self-signed one,
+	// which mihomo rejects unless told not to verify -- the link's insecure=1.
+	certFile, _ := inboundSettings["certFile"].(string)
+	keyFile, _ := inboundSettings["keyFile"].(string)
+	if strings.TrimSpace(certFile) == "" || strings.TrimSpace(keyFile) == "" {
+		proxy["skip-cert-verify"] = true
+	}
+	if insecure, ok := ep["allowInsecure"].(bool); ok && insecure {
+		proxy["skip-cert-verify"] = true
+	}
+
+	return proxy
+}
+
 func (s *SubClashService) buildHysteriaProxy(subReq *SubService, inbound *model.Inbound, client model.Client, ep map[string]any) map[string]any {
 	inboundSettings := subReq.linkSettings(inbound)
 
