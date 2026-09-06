@@ -19,6 +19,46 @@ jobs:
         with:
           submodules: true
 
+      # The five-platform build takes over an hour and only contacts the registry at the
+      # very end, so a package this repository cannot write to costs a full hour to
+      # discover. Opening and cancelling an upload session is the same permission the
+      # push needs and costs a second. Anything we cannot interpret warns and builds on.
+      - name: Verify GHCR will accept a push
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -uo pipefail
+          image=$(echo '${{ github.repository_owner }}/3x-ui' | tr '[:upper:]' '[:lower:]')
+          basic=$(printf '%s:%s' '${{ github.actor }}' "$GH_TOKEN" | base64 -w0)
+          scope="repository:${image}:pull,push"
+          token=$(curl -sS -H "Authorization: Basic $basic" "https://ghcr.io/token?service=ghcr.io&scope=${scope}" | jq -r '.token // empty')
+          if [ -z "$token" ]; then
+            echo "::warning::GHCR issued no token for ${image}; skipping the preflight"
+            exit 0
+          fi
+          headers=$(mktemp)
+          code=$(curl -sS -o /dev/null -D "$headers" -w '%{http_code}' -X POST -H "Authorization: Bearer $token" "https://ghcr.io/v2/${image}/blobs/uploads/")
+          case "$code" in
+            201|202)
+              location=$(sed -n 's/^[Ll]ocation: *//p' "$headers" | tr -d '[:space:]')
+              if [ -n "$location" ]; then
+                curl -sS -o /dev/null -X DELETE -H "Authorization: Bearer $token" "$location" || true
+              fi
+              echo "ghcr.io/${image} accepts pushes from ${{ github.repository }}"
+              ;;
+            401|403)
+              echo "::error::ghcr.io/${image} refuses writes from ${{ github.repository }} (HTTP ${code})"
+              echo "The package is linked to another repository, so this one's GITHUB_TOKEN"
+              echo "cannot write to it. Grant access at:"
+              echo "  https://github.com/users/${{ github.repository_owner }}/packages/container/3x-ui/settings"
+              echo "  Manage Actions access -> Add repository -> ${{ github.repository }} -> Write"
+              exit 1
+              ;;
+            *)
+              echo "::warning::preflight returned HTTP ${code} for ${image}; continuing to the build"
+              ;;
+          esac
+
       - name: Docker meta
         id: meta
         uses: docker/metadata-action@v6

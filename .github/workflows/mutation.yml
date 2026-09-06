@@ -2,11 +2,11 @@ name: Mutation testing
 
 # Mutation testing (gremlins) is the objective check for "fake" tests: it mutates the
 # source and a surviving (LIVED) mutant means no test caught the change. It is SLOW, so it
-# runs nightly / on demand and scoped per package — never per-commit. It is informational:
+# runs weekly / on demand and scoped per package — never per-commit. It is informational:
 # no thresholds are set, so it reports survivors as artifacts without failing the build.
 on:
   schedule:
-    - cron: "0 3 * * *" # 03:00 UTC daily
+    - cron: "0 3 * * 0" # 03:00 UTC on Sundays
   workflow_dispatch:
 
 permissions:
@@ -15,7 +15,9 @@ permissions:
 jobs:
   gremlins:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    # Per package: the small ones finish in minutes, but service is large enough that a
+    # flat 120 was cancelling it every run, so it never produced a report at all.
+    timeout-minutes: ${{ matrix.timeout }}
     strategy:
       fail-fast: false
       matrix:
@@ -23,18 +25,23 @@ jobs:
           - name: sub
             path: ./internal/sub/
             exclude: ""
+            timeout: 120
           - name: runtime
             path: ./internal/web/runtime/
             exclude: ""
+            timeout: 120
           - name: link
             path: ./internal/util/link/
             exclude: ""
+            timeout: 120
           - name: database
             path: ./internal/database/
             exclude: 'dump_sqlite\.go'
+            timeout: 120
           - name: service
             path: ./internal/web/service/
             exclude: 'server\.go|xray\.go|inbound\.go|client_bulk\.go|inbound_traffic\.go|.*_postgres_test\.go'
+            timeout: 300
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v7
