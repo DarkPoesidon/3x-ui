@@ -83,10 +83,10 @@ Xray-core does not speak AnyTLS, so the panel runs one `anytls-server` sidecar p
 bash <(curl -Ls https://raw.githubusercontent.com/DarkPoesidon/3x-ui/main/install.sh)
 ```
 
-To install a specific version, append its tag (e.g. `v3.7.3`):
+To install a specific version, append its tag (e.g. `v3.7.4`):
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/DarkPoesidon/3x-ui/main/install.sh) v3.7.3
+bash <(curl -Ls https://raw.githubusercontent.com/DarkPoesidon/3x-ui/main/install.sh) v3.7.4
 ```
 
 To install the rolling **dev** build (latest per-commit pre-release from `main`, not a stable release), pass `dev-latest`:
