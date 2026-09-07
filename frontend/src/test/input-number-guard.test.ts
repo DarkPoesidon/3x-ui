@@ -7,9 +7,15 @@ import { describe, expect, it } from 'vitest';
 const FIXTURES = 'tools/oxlint/__fixtures__';
 const RULE = 'input-number(no-synthetic-clear)';
 
+// Run the package's own entry through the node we are already running, not the
+// .bin shim: that shim is an extensionless shell script, which execFileSync
+// cannot launch on Windows, and the failure looked exactly like the guard
+// having gone dead — an empty output and zero hits.
+const OXLINT_BIN = 'node_modules/oxlint/bin/oxlint';
+
 function runGuard(target: string): string {
   try {
-    execFileSync('./node_modules/.bin/oxlint', ['-c', `${FIXTURES}/guard.oxlintrc.json`, target], {
+    execFileSync(process.execPath, [OXLINT_BIN, '-c', `${FIXTURES}/guard.oxlintrc.json`, target], {
       encoding: 'utf8',
       stdio: 'pipe',
     });
