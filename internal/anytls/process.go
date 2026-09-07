@@ -42,6 +42,12 @@ func usersPathForID(id int) string {
 	return fmt.Sprintf("%s/anytls-%d.users.json", configDir(), id)
 }
 
+// paddingPathForID is the scheme file the panel writes and owns for an inbound,
+// so no admin has to create a path by hand for the node to start.
+func paddingPathForID(id int) string {
+	return fmt.Sprintf("%s/anytls-%d.padding.txt", configDir(), id)
+}
+
 var (
 	gracefulStopTimeout = 5 * time.Second
 	forceStopTimeout    = 2 * time.Second

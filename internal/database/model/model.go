@@ -88,6 +88,12 @@ type Inbound struct {
 	// the master's externally reachable endpoint instead of the child's
 	// loopback listen. Not persisted.
 	FallbackParent *FallbackParentInfo `json:"fallbackParent,omitempty" gorm:"-"`
+
+	// SidecarError is why the helper process backing this inbound (anytls
+	// today) is not running, filled at read time. A sidecar that cannot start
+	// is otherwise invisible in the panel: the reconcile job keeps retrying and
+	// the inbound goes on looking healthy. Not persisted.
+	SidecarError string `json:"sidecarError,omitempty" gorm:"-"`
 }
 
 // FallbackParentInfo carries everything the frontend needs to rewrite a

@@ -280,6 +280,7 @@
       "importKeepHostSettingsDesc": "Keeps this panel's listen addresses, ports, base path, certificates and node identity instead of taking them from the uploaded file."
     },
     "inbounds": {
+      "sidecarDown": "Not running",
       "totalDownUp": "Total Sent/Received",
       "totalUsage": "Total Usage",
       "inboundCount": "Total Inbounds",
@@ -680,6 +681,18 @@
         "anytlsForwardHint": "Where a connection that fails authentication is relayed, so the port answers a prober like an ordinary web server. Empty relays it to the SNI the client asked for.",
         "anytlsPaddingScheme": "Padding scheme file",
         "anytlsPaddingSchemeHint": "Optional padding scheme file. Clients must use the same scheme.",
+        "anytlsQuickSetup": "No domain? Start here",
+        "anytlsQuickSetupHint": "Fills in a working setup that needs no domain and no certificate: port 443, a generated SNI, a strong padding scheme and probe fallback. Every field stays editable.",
+        "anytlsQuickSetupApply": "Apply",
+        "anytlsSelfSigned": "Without a certificate the node serves a self-signed one. Share links are marked insecure so clients skip verification.",
+        "anytlsPaddingMode": "Padding scheme",
+        "anytlsPaddingModeHint": "Shapes the size of the first TLS records of a session. The panel writes the scheme file itself unless you choose to manage your own.",
+        "anytlsPaddingStrong": "Strong (recommended)",
+        "anytlsPaddingDefault": "Built-in default",
+        "anytlsPaddingCustom": "Custom scheme",
+        "anytlsPaddingFile": "My own file",
+        "anytlsPaddingSchemeText": "Scheme",
+        "anytlsPaddingSchemeTextHint": "One stop= line plus one line per packet index, e.g. 0=100-400. Use c to stop padding once real data runs out. Checked when you save.",
         "anytlsDebug": "Debug logging",
         "anytlsRouteThroughXray": "Route through Xray",
         "anytlsRouteThroughXrayHint": "Send this inbound's outbound traffic through a loopback SOCKS bridge in the Xray config so routing rules apply."

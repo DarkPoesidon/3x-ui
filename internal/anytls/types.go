@@ -40,7 +40,12 @@ type Instance struct {
 	// what makes the port look ordinary to a prober. Empty relays to the SNI.
 	Forward string
 
-	PaddingScheme string // path to an optional padding scheme file
+	// PaddingMode selects where the scheme comes from; see padding.go. In
+	// every mode but PaddingModeFile the panel writes the file itself, so
+	// there is no host path for an admin to get wrong.
+	PaddingMode       string
+	PaddingSchemeText string // scheme content, for PaddingModeCustom
+	PaddingScheme     string // path to a scheme file, for PaddingModeFile
 
 	Debug bool
 
@@ -67,6 +72,8 @@ func (inst Instance) structuralFingerprint() string {
 		inst.CertFile,
 		inst.KeyFile,
 		inst.Forward,
+		inst.PaddingMode,
+		inst.PaddingSchemeText,
 		inst.PaddingScheme,
 		strconv.FormatBool(inst.Debug),
 		strconv.FormatBool(inst.RouteThroughXray),
@@ -93,15 +100,17 @@ func InstanceFromInbound(ib *model.Inbound) (Instance, bool) {
 		return Instance{}, false
 	}
 	var parsed struct {
-		SNI              string `json:"sni"`
-		CertFile         string `json:"certFile"`
-		KeyFile          string `json:"keyFile"`
-		Forward          string `json:"forward"`
-		PaddingScheme    string `json:"paddingScheme"`
-		Debug            bool   `json:"debug"`
-		RouteThroughXray bool   `json:"routeThroughXray"`
-		RouteXrayPort    int    `json:"routeXrayPort"`
-		Clients          []struct {
+		SNI               string `json:"sni"`
+		CertFile          string `json:"certFile"`
+		KeyFile           string `json:"keyFile"`
+		Forward           string `json:"forward"`
+		PaddingMode       string `json:"paddingMode"`
+		PaddingSchemeText string `json:"paddingSchemeText"`
+		PaddingScheme     string `json:"paddingScheme"`
+		Debug             bool   `json:"debug"`
+		RouteThroughXray  bool   `json:"routeThroughXray"`
+		RouteXrayPort     int    `json:"routeXrayPort"`
+		Clients           []struct {
 			Email      string `json:"email"`
 			Password   string `json:"password"`
 			Enable     bool   `json:"enable"`
@@ -139,20 +148,36 @@ func InstanceFromInbound(ib *model.Inbound) (Instance, bool) {
 	}
 
 	return Instance{
-		Id:               ib.Id,
-		Tag:              ib.Tag,
-		Listen:           ib.Listen,
-		Port:             ib.Port,
-		Users:            users,
-		SNI:              strings.TrimSpace(parsed.SNI),
-		CertFile:         strings.TrimSpace(parsed.CertFile),
-		KeyFile:          strings.TrimSpace(parsed.KeyFile),
-		Forward:          strings.TrimSpace(parsed.Forward),
-		PaddingScheme:    strings.TrimSpace(parsed.PaddingScheme),
-		Debug:            parsed.Debug,
-		RouteThroughXray: parsed.RouteThroughXray,
-		XrayRoutePort:    parsed.RouteXrayPort,
+		Id:                ib.Id,
+		Tag:               ib.Tag,
+		Listen:            ib.Listen,
+		Port:              ib.Port,
+		Users:             users,
+		SNI:               strings.TrimSpace(parsed.SNI),
+		CertFile:          strings.TrimSpace(parsed.CertFile),
+		KeyFile:           strings.TrimSpace(parsed.KeyFile),
+		Forward:           strings.TrimSpace(parsed.Forward),
+		PaddingMode:       PaddingModeOf(parsed.PaddingMode, parsed.PaddingScheme),
+		PaddingSchemeText: parsed.PaddingSchemeText,
+		PaddingScheme:     strings.TrimSpace(parsed.PaddingScheme),
+		Debug:             parsed.Debug,
+		RouteThroughXray:  parsed.RouteThroughXray,
+		XrayRoutePort:     parsed.RouteXrayPort,
 	}, true
+}
+
+// PaddingModeOf resolves the stored mode, defaulting inbounds created before
+// paddingMode existed: a bare path means the admin maintains that file, and
+// nothing at all means the sidecar's own built-in scheme.
+func PaddingModeOf(mode, path string) string {
+	switch strings.TrimSpace(mode) {
+	case PaddingModeStrong, PaddingModeCustom, PaddingModeFile, PaddingModeDefault:
+		return strings.TrimSpace(mode)
+	}
+	if strings.TrimSpace(path) != "" {
+		return PaddingModeFile
+	}
+	return PaddingModeDefault
 }
 
 // Traffic is a per-client byte delta scraped from a node's /stats endpoint,

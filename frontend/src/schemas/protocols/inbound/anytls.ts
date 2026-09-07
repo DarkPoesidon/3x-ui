@@ -33,6 +33,12 @@ export const AnytlsInboundSettingsSchema = z.object({
   // Where a connection that fails auth is relayed, which is what makes the
   // port answer an active prober like an ordinary web server.
   forward: z.string().default(''),
+  // Where the padding scheme comes from. Every mode but 'file' is written by
+  // the panel next to the users file, so there is no host path to get wrong --
+  // a path that does not exist made the sidecar exit on startup and get
+  // restarted forever, with nothing in the UI to say why.
+  paddingMode: z.enum(['default', 'strong', 'custom', 'file']).default('strong'),
+  paddingSchemeText: z.string().default(''),
   paddingScheme: z.string().optional(),
   debug: z.boolean().optional(),
   // When set, the node dials out through a loopback SOCKS bridge in the Xray

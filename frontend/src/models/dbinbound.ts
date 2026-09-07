@@ -47,6 +47,7 @@ export type DBInboundInit = Partial<{
   disableFlow: boolean;
   originNodeGuid: string;
   fallbackParent: FallbackParentRef | null;
+  sidecarError: string;
 }>;
 
 export function coerceInboundJsonField(value: unknown): Record<string, unknown> {
@@ -96,6 +97,9 @@ export class DBInbound {
   disableFlow: boolean;
   originNodeGuid: string;
   fallbackParent: FallbackParentRef | null;
+  // Why this inbound's sidecar process is not running, filled by the backend at
+  // read time. Empty when it is healthy or has no sidecar.
+  sidecarError: string;
 
   private _clientStatsMap: Map<string, ClientStats> | null = null;
 
@@ -127,6 +131,7 @@ export class DBInbound {
     this.disableFlow = false;
     this.originNodeGuid = '';
     this.fallbackParent = null;
+    this.sidecarError = '';
     if (data == null) {
       return;
     }

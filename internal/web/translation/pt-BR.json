@@ -280,6 +280,7 @@
       "importKeepHostSettingsDesc": "Mantém os endereços de escuta, as portas, o caminho base, os certificados e a identidade de nó deste painel em vez de obtê-los do arquivo enviado."
     },
     "inbounds": {
+      "sidecarDown": "Not running",
       "totalDownUp": "Total Enviado/Recebido",
       "totalUsage": "Uso Total",
       "inboundCount": "Total de Inbounds",
@@ -680,6 +681,18 @@
         "anytlsForwardHint": "Para onde vai uma conexão que falha na autenticação, de modo que a porta responda a um sondador como um servidor web comum. Vazio encaminha para o SNI pedido.",
         "anytlsPaddingScheme": "Arquivo de esquema de padding",
         "anytlsPaddingSchemeHint": "Arquivo opcional de esquema de padding. Os clientes precisam usar o mesmo esquema.",
+        "anytlsQuickSetup": "No domain? Start here",
+        "anytlsQuickSetupHint": "Fills in a working setup that needs no domain and no certificate: port 443, a generated SNI, a strong padding scheme and probe fallback. Every field stays editable.",
+        "anytlsQuickSetupApply": "Apply",
+        "anytlsSelfSigned": "Without a certificate the node serves a self-signed one. Share links are marked insecure so clients skip verification.",
+        "anytlsPaddingMode": "Padding scheme",
+        "anytlsPaddingModeHint": "Shapes the size of the first TLS records of a session. The panel writes the scheme file itself unless you choose to manage your own.",
+        "anytlsPaddingStrong": "Strong (recommended)",
+        "anytlsPaddingDefault": "Built-in default",
+        "anytlsPaddingCustom": "Custom scheme",
+        "anytlsPaddingFile": "My own file",
+        "anytlsPaddingSchemeText": "Scheme",
+        "anytlsPaddingSchemeTextHint": "One stop= line plus one line per packet index, e.g. 0=100-400. Use c to stop padding once real data runs out. Checked when you save.",
         "anytlsDebug": "Log de depuração",
         "anytlsRouteThroughXray": "Rotear pelo Xray",
         "anytlsRouteThroughXrayHint": "Envia o tráfego de saída deste inbound por uma ponte SOCKS local na configuração do Xray para aplicar as regras de roteamento."

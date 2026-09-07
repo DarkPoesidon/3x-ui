@@ -22,6 +22,8 @@ export type ProtocolFlags = {
 export interface DBInboundRecord extends ProtocolFlags {
   id: number;
   enable: boolean;
+  // Why this inbound's sidecar is not running; empty when healthy.
+  sidecarError: string;
   remark: string;
   subSortIndex: number;
   port: number;

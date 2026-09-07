@@ -280,6 +280,7 @@
       "importKeepHostSettingsDesc": "Conserva las direcciones de escucha, los puertos, la ruta base, los certificados y la identidad de nodo de este panel en lugar de tomarlos del archivo subido."
     },
     "inbounds": {
+      "sidecarDown": "Not running",
       "totalDownUp": "Subidas/Descargas Totales",
       "totalUsage": "Uso Total",
       "inboundCount": "Número de Entradas",
@@ -680,6 +681,18 @@
         "anytlsForwardHint": "Adónde se reenvía una conexión que falla la autenticación, para que el puerto responda a un sondeo como un servidor web normal. Vacío lo reenvía al SNI solicitado.",
         "anytlsPaddingScheme": "Archivo de esquema de relleno",
         "anytlsPaddingSchemeHint": "Archivo opcional de esquema de relleno. Los clientes deben usar el mismo esquema.",
+        "anytlsQuickSetup": "No domain? Start here",
+        "anytlsQuickSetupHint": "Fills in a working setup that needs no domain and no certificate: port 443, a generated SNI, a strong padding scheme and probe fallback. Every field stays editable.",
+        "anytlsQuickSetupApply": "Apply",
+        "anytlsSelfSigned": "Without a certificate the node serves a self-signed one. Share links are marked insecure so clients skip verification.",
+        "anytlsPaddingMode": "Padding scheme",
+        "anytlsPaddingModeHint": "Shapes the size of the first TLS records of a session. The panel writes the scheme file itself unless you choose to manage your own.",
+        "anytlsPaddingStrong": "Strong (recommended)",
+        "anytlsPaddingDefault": "Built-in default",
+        "anytlsPaddingCustom": "Custom scheme",
+        "anytlsPaddingFile": "My own file",
+        "anytlsPaddingSchemeText": "Scheme",
+        "anytlsPaddingSchemeTextHint": "One stop= line plus one line per packet index, e.g. 0=100-400. Use c to stop padding once real data runs out. Checked when you save.",
         "anytlsDebug": "Registro de depuración",
         "anytlsRouteThroughXray": "Enrutar por Xray",
         "anytlsRouteThroughXrayHint": "Envía el tráfico saliente de esta entrada por un puente SOCKS local en la configuración de Xray para aplicar las reglas de enrutamiento."

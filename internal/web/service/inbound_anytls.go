@@ -146,3 +146,16 @@ func (s *InboundService) localAnytlsInboundIdForEmail(email string) (int, bool) 
 	}
 	return 0, false
 }
+
+// annotateSidecarErrors fills SidecarError for inbounds whose helper process is
+// not running, so the panel can say why instead of showing a healthy row while
+// the reconcile job restarts a doomed process every ten seconds.
+func (s *InboundService) annotateSidecarErrors(inbounds []*model.Inbound) {
+	mgr := anytls.GetManager()
+	for _, ib := range inbounds {
+		if ib == nil || ib.Protocol != model.AnyTLS || !ib.Enable || ib.NodeID != nil {
+			continue
+		}
+		ib.SidecarError = mgr.LastError(ib.Id)
+	}
+}

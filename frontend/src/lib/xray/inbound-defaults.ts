@@ -228,13 +228,24 @@ export function generateMtprotoSecret(domain: string): string {
 
 // A new AnyTLS inbound starts with no certificate: the node then serves an
 // ephemeral self-signed one, and the share link is marked insecure to match.
+// ANYTLS_DEFAULT_FORWARD is where a connection that fails authentication is
+// relayed, which is what makes the port answer an active prober like an
+// ordinary web server. Defaulting it means probe resistance is on out of the
+// box instead of waiting for an admin who may never know to set it.
+export const ANYTLS_DEFAULT_FORWARD = 'https://www.bing.com';
+
 export function createDefaultAnytlsInboundSettings(): AnytlsInboundSettings {
   return {
     clients: [],
     sni: '',
     certFile: '',
     keyFile: '',
-    forward: '',
+    // Both defaults matter on their own: the built-in padding scheme is
+    // fingerprintable by shape (its first record is always exactly 30 bytes),
+    // and an unset forward leaves the port silent to a prober.
+    forward: ANYTLS_DEFAULT_FORWARD,
+    paddingMode: 'strong',
+    paddingSchemeText: '',
   };
 }
 

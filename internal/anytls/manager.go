@@ -38,6 +38,10 @@ type managed struct {
 type Manager struct {
 	mu    sync.Mutex
 	procs map[int]*managed
+	// errs is why an inbound has no running node, keyed by inbound id. A
+	// sidecar that cannot start is otherwise invisible: the panel keeps
+	// retrying on every reconcile tick and the UI shows a healthy inbound.
+	errs map[int]string
 	// swept records that the one-time sweep of orphaned nodes has run.
 	swept bool
 }
@@ -50,7 +54,7 @@ var (
 // GetManager returns the process-wide anytls node manager singleton.
 func GetManager() *Manager {
 	managerOnce.Do(func() {
-		manager = &Manager{procs: map[int]*managed{}}
+		manager = &Manager{procs: map[int]*managed{}, errs: map[int]string{}}
 	})
 	return manager
 }
@@ -121,6 +125,14 @@ func (m *Manager) ensureLocked(inst Instance) error {
 			logger.Warningf("anytls: live user update unavailable for inbound %d, restarting", inst.Id)
 			fallthrough
 		case ensureRestart:
+			// A process that died on its own carries the reason in its last
+			// log line; keep it so a crash loop is visible even though the
+			// next start may well succeed and clear it again.
+			if !cur.proc.IsRunning() {
+				if reason := cur.proc.GetResult(); reason != "" {
+					m.setErrLocked(inst.Id, reason)
+				}
+			}
 			_ = cur.proc.Stop()
 			delete(m.procs, inst.Id)
 		}
@@ -129,6 +141,16 @@ func (m *Manager) ensureLocked(inst Instance) error {
 	// with no hint that the release is expected to ship this binary.
 	if _, err := os.Stat(GetBinaryPath()); err != nil {
 		return fmt.Errorf("anytls: sidecar binary %s is missing, so this inbound cannot start: %w", GetBinaryName(), err)
+	}
+	// Same courtesy for the files the admin supplies. Without this the node
+	// starts, exits with a bare ENOENT naming no file, and gets restarted on
+	// every reconcile tick with nothing in the panel to say what is wrong.
+	if err := checkInstanceFiles(inst); err != nil {
+		return err
+	}
+	paddingPath, err := preparePaddingFile(inst)
+	if err != nil {
+		return err
 	}
 	apiPort, err := FreeLocalPort()
 	if err != nil {
@@ -142,7 +164,7 @@ func (m *Manager) ensureLocked(inst Instance) error {
 	if err := writeUsersFile(usersPath, inst); err != nil {
 		return err
 	}
-	proc := newProcess(renderArgs(inst, usersPath, apiPort), tokenEnv(apiToken), fmt.Sprintf("inbound %d", inst.Id))
+	proc := newProcess(renderArgs(inst, usersPath, paddingPath, apiPort), tokenEnv(apiToken), fmt.Sprintf("inbound %d", inst.Id))
 	if err := proc.Start(); err != nil {
 		return err
 	}
@@ -159,6 +181,25 @@ func (m *Manager) ensureLocked(inst Instance) error {
 	return nil
 }
 
+// setErrLocked records why an inbound has no node. Callers hold m.mu.
+func (m *Manager) setErrLocked(id int, msg string) {
+	if m.errs == nil {
+		m.errs = map[int]string{}
+	}
+	m.errs[id] = msg
+}
+
+// LastError is the reason an inbound's node is not running, or "" when it is
+// healthy or unknown to the manager.
+func (m *Manager) LastError(id int) string {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if cur, ok := m.procs[id]; ok && cur.proc.IsRunning() {
+		return ""
+	}
+	return m.errs[id]
+}
+
 // Remove stops and forgets the node process for an inbound id.
 func (m *Manager) Remove(id int) {
 	m.mu.Lock()
@@ -167,6 +208,7 @@ func (m *Manager) Remove(id int) {
 		_ = cur.proc.Stop()
 		delete(m.procs, id)
 		_ = os.Remove(usersPathForID(id))
+		_ = os.Remove(paddingPathForID(id))
 		logger.Infof("anytls: stopped anytls-server for inbound %d", id)
 	}
 }
@@ -185,13 +227,18 @@ func (m *Manager) Reconcile(desired []Instance) {
 		if _, ok := want[id]; !ok {
 			_ = cur.proc.Stop()
 			delete(m.procs, id)
+			delete(m.errs, id)
 			_ = os.Remove(usersPathForID(id))
+			_ = os.Remove(paddingPathForID(id))
 		}
 	}
 	for _, inst := range desired {
 		if err := m.ensureLocked(inst); err != nil {
+			m.setErrLocked(inst.Id, err.Error())
 			logger.Warningf("anytls: reconcile failed for inbound %d: %v", inst.Id, err)
+			continue
 		}
+		delete(m.errs, inst.Id)
 	}
 }
 
@@ -202,6 +249,7 @@ func (m *Manager) StopAll() {
 	for id, cur := range m.procs {
 		_ = cur.proc.Stop()
 		_ = os.Remove(usersPathForID(id))
+		_ = os.Remove(paddingPathForID(id))
 		delete(m.procs, id)
 	}
 }
@@ -306,7 +354,7 @@ func (m *Manager) ResetQuota(email string) {
 
 // renderArgs builds the node command line. Everything but the users file is
 // structural, so a change to it needs the restart structuralFingerprint forces.
-func renderArgs(inst Instance, usersPath string, apiPort int) []string {
+func renderArgs(inst Instance, usersPath, paddingPath string, apiPort int) []string {
 	args := []string{
 		"-l", inst.bindTo(),
 		"--users-file", usersPath,
@@ -321,8 +369,8 @@ func renderArgs(inst Instance, usersPath string, apiPort int) []string {
 	if inst.Forward != "" {
 		args = append(args, "--forward", inst.Forward)
 	}
-	if inst.PaddingScheme != "" {
-		args = append(args, "--padding-scheme", inst.PaddingScheme)
+	if paddingPath != "" {
+		args = append(args, "--padding-scheme", paddingPath)
 	}
 	// Egress through the loopback SOCKS bridge the panel injects into the
 	// generated Xray config, so it obeys the core's routing rules.
@@ -378,6 +426,52 @@ func writeUsersFile(path string, inst Instance) error {
 		return err
 	}
 	return os.WriteFile(path, body, 0o600)
+}
+
+// checkInstanceFiles reports the first admin-supplied path the node would fail
+// to open, naming the field so the message is actionable in the panel log.
+func checkInstanceFiles(inst Instance) error {
+	files := []struct{ label, path string }{
+		{"certificate file", inst.CertFile},
+		{"private key file", inst.KeyFile},
+	}
+	if inst.PaddingMode == PaddingModeFile {
+		files = append(files, struct{ label, path string }{"padding scheme file", inst.PaddingScheme})
+	}
+	for _, f := range files {
+		if f.path == "" {
+			continue
+		}
+		if _, err := os.Stat(f.path); err != nil {
+			return fmt.Errorf("anytls: %s %q cannot be read, so this inbound cannot start: %w", f.label, f.path, err)
+		}
+	}
+	return nil
+}
+
+// preparePaddingFile writes the scheme the panel owns and returns the path to
+// pass the node, or the admin's own path in PaddingModeFile. An empty return
+// leaves the node on its built-in scheme.
+func preparePaddingFile(inst Instance) (string, error) {
+	if inst.PaddingMode == PaddingModeFile {
+		return inst.PaddingScheme, nil
+	}
+	text, managed := SchemeTextFor(inst.PaddingMode, inst.PaddingSchemeText)
+	if !managed {
+		_ = os.Remove(paddingPathForID(inst.Id))
+		return "", nil
+	}
+	if err := ValidateScheme(text); err != nil {
+		return "", fmt.Errorf("anytls: padding scheme for this inbound is invalid, so it cannot start: %w", err)
+	}
+	if err := os.MkdirAll(configDir(), 0o700); err != nil {
+		return "", err
+	}
+	path := paddingPathForID(inst.Id)
+	if err := os.WriteFile(path, []byte(text), 0o600); err != nil {
+		return "", err
+	}
+	return path, nil
 }
 
 // statsUser is one /stats entry: bytes_in is the client's upload, bytes_out its

@@ -280,6 +280,7 @@
       "importKeepHostSettingsDesc": "アップロードしたファイルの値ではなく、このパネルのリッスンアドレス、ポート、ベースパス、証明書、ノード ID を保持します。"
     },
     "inbounds": {
+      "sidecarDown": "Not running",
       "totalDownUp": "総アップロード / ダウンロード",
       "totalUsage": "総使用量",
       "inboundCount": "インバウンド数",
@@ -680,6 +681,18 @@
         "anytlsForwardHint": "認証に失敗した接続の転送先。ポートが通常の Web サーバーのように応答します。空欄ならクライアントが要求した SNI へ転送します。",
         "anytlsPaddingScheme": "パディングスキームファイル",
         "anytlsPaddingSchemeHint": "任意のパディングスキームファイル。クライアントも同じスキームを使う必要があります。",
+        "anytlsQuickSetup": "No domain? Start here",
+        "anytlsQuickSetupHint": "Fills in a working setup that needs no domain and no certificate: port 443, a generated SNI, a strong padding scheme and probe fallback. Every field stays editable.",
+        "anytlsQuickSetupApply": "Apply",
+        "anytlsSelfSigned": "Without a certificate the node serves a self-signed one. Share links are marked insecure so clients skip verification.",
+        "anytlsPaddingMode": "Padding scheme",
+        "anytlsPaddingModeHint": "Shapes the size of the first TLS records of a session. The panel writes the scheme file itself unless you choose to manage your own.",
+        "anytlsPaddingStrong": "Strong (recommended)",
+        "anytlsPaddingDefault": "Built-in default",
+        "anytlsPaddingCustom": "Custom scheme",
+        "anytlsPaddingFile": "My own file",
+        "anytlsPaddingSchemeText": "Scheme",
+        "anytlsPaddingSchemeTextHint": "One stop= line plus one line per packet index, e.g. 0=100-400. Use c to stop padding once real data runs out. Checked when you save.",
         "anytlsDebug": "デバッグログ",
         "anytlsRouteThroughXray": "Xray 経由でルーティング",
         "anytlsRouteThroughXrayHint": "このインバウンドの送信トラフィックを Xray 設定内のループバック SOCKS ブリッジ経由にして、ルーティング規則を適用します。"

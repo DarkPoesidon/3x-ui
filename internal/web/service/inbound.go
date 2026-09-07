@@ -174,6 +174,7 @@ func (s *InboundService) GetInbounds(userId int) ([]*model.Inbound, error) {
 	s.enrichClientStats(db, inbounds)
 	s.annotateFallbackParents(db, inbounds)
 	s.annotateLocalOriginGuid(inbounds)
+	s.annotateSidecarErrors(inbounds)
 	return inbounds, nil
 }
 
@@ -216,6 +217,9 @@ func (s *InboundService) GetInboundsSlim(userId int) ([]*model.Inbound, error) {
 	}
 	s.annotateFallbackParents(db, inbounds)
 	s.annotateLocalOriginGuid(inbounds)
+	// The list view is the slim one, so the sidecar health it shows has to be
+	// filled here too, not only in GetInbounds.
+	s.annotateSidecarErrors(inbounds)
 	// Top up stats rows owned by sibling inbounds (multi-attached clients)
 	// so the list's depleted/expiring badges see every client; the UUID/SubId
 	// enrichment stays skipped. Must run before slimming strips the settings.
@@ -976,6 +980,9 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 	if err := s.normalizeMtprotoXrayPort(inbound, ""); err != nil {
 		return inbound, false, err
 	}
+	if err := validateAnytlsSettings(inbound); err != nil {
+		return inbound, false, err
+	}
 	if err := s.normalizeAmneziaWGSettings(inbound); err != nil {
 		return inbound, false, err
 	}
@@ -1527,6 +1534,9 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	oldProtocol := oldInbound.Protocol
 	oldRoutedMtproto := mtprotoRoutesThroughXray(oldInbound)
 	if err := s.normalizeMtprotoXrayPort(inbound, oldInbound.Settings); err != nil {
+		return inbound, false, err
+	}
+	if err := validateAnytlsSettings(inbound); err != nil {
 		return inbound, false, err
 	}
 

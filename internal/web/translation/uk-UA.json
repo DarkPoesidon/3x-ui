@@ -280,6 +280,7 @@
       "importKeepHostSettingsDesc": "Залишає адреси та порти цієї панелі, базовий шлях, сертифікати та посвідчення для вузлів замість тих, що у завантаженому файлі."
     },
     "inbounds": {
+      "sidecarDown": "Not running",
       "totalDownUp": "Всього надісланих/отриманих",
       "totalUsage": "Всього використанно",
       "inboundCount": "Загальна кількість вхідних",
@@ -680,6 +681,18 @@
         "anytlsForwardHint": "Куди перенаправляється з'єднання, що не пройшло автентифікацію, щоб порт відповідав сканеру як звичайний вебсервер. Порожньо — перенаправлення на запитаний SNI.",
         "anytlsPaddingScheme": "Файл схеми padding",
         "anytlsPaddingSchemeHint": "Необов'язковий файл схеми padding. Клієнти мають використовувати ту саму схему.",
+        "anytlsQuickSetup": "No domain? Start here",
+        "anytlsQuickSetupHint": "Fills in a working setup that needs no domain and no certificate: port 443, a generated SNI, a strong padding scheme and probe fallback. Every field stays editable.",
+        "anytlsQuickSetupApply": "Apply",
+        "anytlsSelfSigned": "Without a certificate the node serves a self-signed one. Share links are marked insecure so clients skip verification.",
+        "anytlsPaddingMode": "Padding scheme",
+        "anytlsPaddingModeHint": "Shapes the size of the first TLS records of a session. The panel writes the scheme file itself unless you choose to manage your own.",
+        "anytlsPaddingStrong": "Strong (recommended)",
+        "anytlsPaddingDefault": "Built-in default",
+        "anytlsPaddingCustom": "Custom scheme",
+        "anytlsPaddingFile": "My own file",
+        "anytlsPaddingSchemeText": "Scheme",
+        "anytlsPaddingSchemeTextHint": "One stop= line plus one line per packet index, e.g. 0=100-400. Use c to stop padding once real data runs out. Checked when you save.",
         "anytlsDebug": "Журнал зневадження",
         "anytlsRouteThroughXray": "Маршрутизація через Xray",
         "anytlsRouteThroughXrayHint": "Надсилати вихідний трафік цього входу через локальний SOCKS-міст у конфігурації Xray, щоб застосовувалися правила маршрутизації."

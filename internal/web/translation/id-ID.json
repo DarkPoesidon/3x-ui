@@ -280,6 +280,7 @@
       "importKeepHostSettingsDesc": "Mempertahankan alamat dengar, port, path dasar, sertifikat, dan identitas node panel ini alih-alih mengambilnya dari berkas yang diunggah."
     },
     "inbounds": {
+      "sidecarDown": "Not running",
       "totalDownUp": "Total Terkirim/Diterima",
       "totalUsage": "Penggunaan Total",
       "inboundCount": "Total Masuk",
@@ -680,6 +681,18 @@
         "anytlsForwardHint": "Tujuan koneksi yang gagal autentikasi, agar port menjawab prober seperti server web biasa. Kosongkan untuk meneruskan ke SNI yang diminta klien.",
         "anytlsPaddingScheme": "Berkas skema padding",
         "anytlsPaddingSchemeHint": "Berkas skema padding opsional. Klien harus memakai skema yang sama.",
+        "anytlsQuickSetup": "No domain? Start here",
+        "anytlsQuickSetupHint": "Fills in a working setup that needs no domain and no certificate: port 443, a generated SNI, a strong padding scheme and probe fallback. Every field stays editable.",
+        "anytlsQuickSetupApply": "Apply",
+        "anytlsSelfSigned": "Without a certificate the node serves a self-signed one. Share links are marked insecure so clients skip verification.",
+        "anytlsPaddingMode": "Padding scheme",
+        "anytlsPaddingModeHint": "Shapes the size of the first TLS records of a session. The panel writes the scheme file itself unless you choose to manage your own.",
+        "anytlsPaddingStrong": "Strong (recommended)",
+        "anytlsPaddingDefault": "Built-in default",
+        "anytlsPaddingCustom": "Custom scheme",
+        "anytlsPaddingFile": "My own file",
+        "anytlsPaddingSchemeText": "Scheme",
+        "anytlsPaddingSchemeTextHint": "One stop= line plus one line per packet index, e.g. 0=100-400. Use c to stop padding once real data runs out. Checked when you save.",
         "anytlsDebug": "Log debug",
         "anytlsRouteThroughXray": "Rutekan lewat Xray",
         "anytlsRouteThroughXrayHint": "Kirim lalu lintas keluar inbound ini melalui jembatan SOCKS loopback di konfigurasi Xray agar aturan routing berlaku."

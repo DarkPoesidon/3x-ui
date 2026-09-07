@@ -199,6 +199,16 @@ export function useInboundColumns({
               {record.protocol}
             </Tag>,
           ];
+          // A sidecar that cannot start leaves the inbound looking healthy:
+          // the row is enabled, the port is set, and the only trace is a line
+          // in the panel log. Say so here instead.
+          if (record.sidecarError) {
+            tags.push(
+              <Tooltip key="err" title={record.sidecarError}>
+                <Tag color="red">{t('pages.inbounds.sidecarDown')}</Tag>
+              </Tooltip>,
+            );
+          }
           if (record.isWireguard || record.isAmneziawg || record.isHysteria) {
             tags.push(
               <Tag key="n" color="green">

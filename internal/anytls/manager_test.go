@@ -155,7 +155,7 @@ func TestRenderArgs(t *testing.T) {
 		Forward: "https://example.com", PaddingScheme: "/p.txt", Debug: true,
 		RouteThroughXray: true, XrayRoutePort: 1080,
 	}
-	args := strings.Join(renderArgs(inst, "/tmp/users.json", 41234), " ")
+	args := strings.Join(renderArgs(inst, "/tmp/users.json", "/p.txt", 41234), " ")
 
 	for _, want := range []string{
 		"-l 0.0.0.0:8443",
@@ -197,7 +197,7 @@ func TestRenderArgsOmitsUnsetOptions(t *testing.T) {
 	// A half-configured certificate pair would make the node fail to start, so
 	// neither half is passed unless both are set.
 	inst := Instance{Id: 1, Listen: "127.0.0.1", Port: 8443, CertFile: "/c.pem"}
-	args := strings.Join(renderArgs(inst, "/tmp/u.json", 1), " ")
+	args := strings.Join(renderArgs(inst, "/tmp/u.json", "", 1), " ")
 	for _, unwanted := range []string{"--cert", "--key", "--sni", "--forward", "--padding-scheme", "--outbound-proxy", "--log"} {
 		if strings.Contains(args, unwanted) {
 			t.Fatalf("expected no %s in args:\n%s", unwanted, args)

@@ -280,6 +280,7 @@
       "importKeepHostSettingsDesc": "保留本面板的監聽位址、連接埠、基礎路徑、憑證與節點身分，而不是使用上傳檔案中的值。"
     },
     "inbounds": {
+      "sidecarDown": "Not running",
       "totalDownUp": "總上傳 / 下載",
       "totalUsage": "總用量",
       "inboundCount": "入站數量",
@@ -680,6 +681,18 @@
         "anytlsForwardHint": "認證失敗的連線會轉送到這裡，使連接埠像一般網站一樣回應主動探測。留空則轉送到用戶端請求的 SNI。",
         "anytlsPaddingScheme": "填充方案檔案",
         "anytlsPaddingSchemeHint": "選用的填充方案檔案，用戶端須使用相同方案。",
+        "anytlsQuickSetup": "No domain? Start here",
+        "anytlsQuickSetupHint": "Fills in a working setup that needs no domain and no certificate: port 443, a generated SNI, a strong padding scheme and probe fallback. Every field stays editable.",
+        "anytlsQuickSetupApply": "Apply",
+        "anytlsSelfSigned": "Without a certificate the node serves a self-signed one. Share links are marked insecure so clients skip verification.",
+        "anytlsPaddingMode": "Padding scheme",
+        "anytlsPaddingModeHint": "Shapes the size of the first TLS records of a session. The panel writes the scheme file itself unless you choose to manage your own.",
+        "anytlsPaddingStrong": "Strong (recommended)",
+        "anytlsPaddingDefault": "Built-in default",
+        "anytlsPaddingCustom": "Custom scheme",
+        "anytlsPaddingFile": "My own file",
+        "anytlsPaddingSchemeText": "Scheme",
+        "anytlsPaddingSchemeTextHint": "One stop= line plus one line per packet index, e.g. 0=100-400. Use c to stop padding once real data runs out. Checked when you save.",
         "anytlsDebug": "偵錯日誌",
         "anytlsRouteThroughXray": "經 Xray 路由",
         "anytlsRouteThroughXrayHint": "讓此入站的出站流量經 Xray 設定中的本機 SOCKS 橋接轉送，以套用路由規則。"
