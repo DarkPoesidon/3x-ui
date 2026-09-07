@@ -617,6 +617,24 @@ ssl_cert_issue() {
 
     return 0
 }
+# Reports the scheme the panel will really answer on. internal/web/web.go only
+# wraps the listener in TLS when both cert paths are set AND the key pair loads;
+# anything else silently falls back to plain HTTP. Deriving the advertised
+# scheme from the stored cert keeps the Access URL honest when an ACME run fails
+# and the panel stays HTTP-only, instead of printing an https:// link the
+# browser refuses to open.
+panel_scheme_from_cert() {
+    local cert_out cert_file key_file
+    cert_out=$(${xui_folder}/x-ui setting -getCert true 2> /dev/null)
+    cert_file=$(echo "${cert_out}" | grep -E '^cert:' | sed 's/^cert:[[:space:]]*//' | tr -d '[:space:]')
+    key_file=$(echo "${cert_out}" | grep -E '^key:' | sed 's/^key:[[:space:]]*//' | tr -d '[:space:]')
+    if [[ -n "${cert_file}" && -n "${key_file}" && -s "${cert_file}" && -s "${key_file}" ]]; then
+        echo "https"
+    else
+        echo "http"
+    fi
+}
+
 # Unified interactive SSL setup (domain or IP)
 # Sets global `SSL_HOST` to the chosen domain/IP
 prompt_and_setup_ssl() {
@@ -625,6 +643,7 @@ prompt_and_setup_ssl() {
     local server_ip="$3"
 
     local ssl_choice=""
+    SSL_SCHEME="https"
 
     echo -e "${yellow}Choose SSL certificate setup method:${plain}"
     echo -e "${green}1.${plain} Let's Encrypt for Domain (90-day validity, auto-renews)"
@@ -812,6 +831,20 @@ prompt_and_setup_ssl() {
             SSL_HOST="${server_ip}"
             ;;
     esac
+
+    # Any branch above can end without a usable certificate (ACME failure, a
+    # declined prompt, an x-ui cert call that errored), so trust the stored cert
+    # rather than the branch we took when composing the Access URL.
+    local requested_scheme="${SSL_SCHEME}"
+    SSL_SCHEME=$(panel_scheme_from_cert)
+    [[ -z "${SSL_HOST}" ]] && SSL_HOST="${server_ip}"
+
+    if [[ "${requested_scheme}" == "https" && "${SSL_SCHEME}" == "http" ]]; then
+        echo ""
+        echo -e "${yellow}⚠ No usable certificate is configured, so the panel is serving plain HTTP.${plain}"
+        echo -e "${yellow}  The Access URL below says http:// on purpose — an https:// link would fail.${plain}"
+        echo ""
+    fi
 }
 
 config_after_update() {
@@ -885,9 +918,13 @@ config_after_update() {
         echo -e "${green}═══════════════════════════════════════════${plain}"
         echo -e "${green}     Panel Access Information              ${plain}"
         echo -e "${green}═══════════════════════════════════════════${plain}"
-        echo -e "${green}Access URL: https://${SSL_HOST}:${existing_port}/${existing_webBasePath}${plain}"
+        echo -e "${green}Access URL: ${SSL_SCHEME}://${SSL_HOST}:${existing_port}/${existing_webBasePath}${plain}"
         echo -e "${green}═══════════════════════════════════════════${plain}"
-        echo -e "${yellow}⚠ SSL Certificate: Enabled and configured${plain}"
+        if [[ "${SSL_SCHEME}" == "https" ]]; then
+            echo -e "${yellow}⚠ SSL Certificate: Enabled and configured${plain}"
+        else
+            echo -e "${yellow}⚠ SSL Certificate: Not configured — the panel is HTTP-only.${plain}"
+        fi
     else
         echo -e "${green}SSL certificate is already configured${plain}"
         # Show access URL with existing certificate

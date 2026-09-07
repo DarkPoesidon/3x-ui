@@ -808,6 +808,24 @@ ssl_cert_issue() {
     return 0
 }
 
+# Reports the scheme the panel will really answer on. internal/web/web.go only
+# wraps the listener in TLS when both cert paths are set AND the key pair loads;
+# anything else silently falls back to plain HTTP. Deriving the advertised
+# scheme from the stored cert keeps the Access URL honest when an ACME run fails
+# (port 80 blocked, IP-cert profile refused) and the panel stays HTTP-only --
+# otherwise we hand the user an https:// link the browser refuses to open.
+panel_scheme_from_cert() {
+    local cert_out cert_file key_file
+    cert_out=$(${xui_folder}/x-ui setting -getCert true 2> /dev/null)
+    cert_file=$(echo "${cert_out}" | grep -E '^cert:' | sed 's/^cert:[[:space:]]*//' | tr -d '[:space:]')
+    key_file=$(echo "${cert_out}" | grep -E '^key:' | sed 's/^key:[[:space:]]*//' | tr -d '[:space:]')
+    if [[ -n "${cert_file}" && -n "${key_file}" && -s "${cert_file}" && -s "${key_file}" ]]; then
+        echo "https"
+    else
+        echo "http"
+    fi
+}
+
 # Reusable interactive SSL setup (domain or IP)
 # Sets global `SSL_HOST` to the chosen domain/IP for Access URL usage
 prompt_and_setup_ssl() {
@@ -1015,6 +1033,87 @@ prompt_and_setup_ssl() {
             SSL_HOST="${server_ip}"
             ;;
     esac
+
+    # Every branch above can leave the panel without a usable certificate (ACME
+    # failure, a declined "set this certificate for the panel?", an x-ui cert
+    # call that errored). Trust the stored cert, not the branch we took, so the
+    # Access URL we are about to print matches the listener.
+    local requested_scheme="${SSL_SCHEME}"
+    SSL_SCHEME=$(panel_scheme_from_cert)
+    [[ -z "${SSL_HOST}" ]] && SSL_HOST="${server_ip}"
+
+    if [[ "${requested_scheme}" == "https" && "${SSL_SCHEME}" == "http" ]]; then
+        echo ""
+        echo -e "${yellow}⚠ No usable certificate is configured, so the panel is serving plain HTTP.${plain}"
+        echo -e "${yellow}  The Access URL below says http:// on purpose — an https:// link would fail${plain}"
+        echo -e "${yellow}  in the browser with a TLS error.${plain}"
+        echo -e "${yellow}  To add TLS later run ${plain}${blue}x-ui${plain}${yellow} and use the SSL Certificate Management menu.${plain}"
+        echo ""
+    fi
+}
+
+# The installer picks a random high port and nothing here opens it, so on any
+# image that ships an active firewall (ufw on Ubuntu/Debian, firewalld on the
+# RHEL family) the panel binds fine and is still unreachable from a browser --
+# which looks exactly like a broken install. Check the listener and the local
+# firewall, and offer to open the port instead of leaving the user to guess.
+verify_panel_reachable() {
+    local panel_port="$1"
+    local listen_ip="$2"
+
+    local listening=""
+    if command -v ss > /dev/null 2>&1; then
+        listening=$(ss -ltn 2> /dev/null | grep -E "[:.]${panel_port}[[:space:]]")
+    elif command -v netstat > /dev/null 2>&1; then
+        listening=$(netstat -ltn 2> /dev/null | grep -E "[:.]${panel_port}[[:space:]]")
+    fi
+    if [[ -z "${listening}" ]]; then
+        echo ""
+        echo -e "${red}✗ Nothing is listening on port ${panel_port} — the panel did not start.${plain}"
+        echo -e "  Inspect it with: ${blue}systemctl status x-ui${plain} and ${blue}x-ui log${plain}"
+    fi
+
+    # A panel deliberately bound to loopback is not supposed to be reachable
+    # from outside, so skip the firewall nagging in that case.
+    if [[ "${listen_ip}" == "127.0.0.1" || "${listen_ip}" == "::1" ]]; then
+        return 0
+    fi
+
+    local open_port=""
+    if command -v ufw > /dev/null 2>&1 && ufw status 2> /dev/null | grep -q "Status: active"; then
+        if ! ufw status 2> /dev/null | grep -qE "(^|[^0-9])${panel_port}(/tcp)?([^0-9]|$)"; then
+            echo ""
+            echo -e "${yellow}⚠ ufw is active and port ${panel_port} is not allowed — the panel will not open.${plain}"
+            prompt_or_default open_port "Open port ${panel_port}/tcp in ufw now? [Y/n]: " "y" XUI_OPEN_FIREWALL
+            if [[ "${open_port}" != "n" && "${open_port}" != "N" ]]; then
+                if ufw allow "${panel_port}/tcp" > /dev/null 2>&1; then
+                    echo -e "${green}✓ ufw now allows ${panel_port}/tcp.${plain}"
+                else
+                    echo -e "${red}Failed to add the rule. Run it yourself: ${plain}${blue}ufw allow ${panel_port}/tcp${plain}"
+                fi
+            else
+                echo -e "${yellow}  Run this when you are ready: ${plain}${blue}ufw allow ${panel_port}/tcp${plain}"
+            fi
+        fi
+    elif command -v firewall-cmd > /dev/null 2>&1 && firewall-cmd --state 2> /dev/null | grep -q "^running$"; then
+        if ! firewall-cmd --list-ports 2> /dev/null | grep -qE "(^| )${panel_port}/tcp( |$)"; then
+            echo ""
+            echo -e "${yellow}⚠ firewalld is running and port ${panel_port} is not open — the panel will not open.${plain}"
+            prompt_or_default open_port "Open port ${panel_port}/tcp in firewalld now? [Y/n]: " "y" XUI_OPEN_FIREWALL
+            if [[ "${open_port}" != "n" && "${open_port}" != "N" ]]; then
+                if firewall-cmd --permanent --add-port="${panel_port}/tcp" > /dev/null 2>&1 && firewall-cmd --reload > /dev/null 2>&1; then
+                    echo -e "${green}✓ firewalld now allows ${panel_port}/tcp.${plain}"
+                else
+                    echo -e "${red}Failed to add the rule. Run: ${plain}${blue}firewall-cmd --permanent --add-port=${panel_port}/tcp && firewall-cmd --reload${plain}"
+                fi
+            else
+                echo -e "${yellow}  Run this when you are ready: ${plain}${blue}firewall-cmd --permanent --add-port=${panel_port}/tcp && firewall-cmd --reload${plain}"
+            fi
+        fi
+    fi
+
+    echo -e "${yellow}Reminder: cloud providers (Hetzner, Oracle, AWS, GCP, Arvan…) enforce their own${plain}"
+    echo -e "${yellow}          firewall as well — ${panel_port}/tcp must be open there too.${plain}"
 }
 
 config_after_install() {
@@ -1247,8 +1346,12 @@ EOF
             if [[ "$SSL_SCHEME" == "https" ]]; then
                 echo -e "${yellow}⚠ SSL Certificate: Enabled and configured${plain}"
             else
-                echo -e "${yellow}⚠ SSL Certificate: Skipped — panel is HTTP-only. Use a reverse proxy or SSH tunnel.${plain}"
+                echo -e "${yellow}⚠ SSL Certificate: Not configured — panel is HTTP-only. Use a reverse proxy or SSH tunnel.${plain}"
             fi
+
+            local listen_ip_out
+            listen_ip_out=$(${xui_folder}/x-ui setting -getListen true 2> /dev/null | grep -Eo 'listenIP: .+' | awk '{print $2}' | tr -d '[:space:]')
+            verify_panel_reachable "${config_port}" "${listen_ip_out}"
 
             if [[ "$db_choice" == "2" ]]; then
                 echo ""
