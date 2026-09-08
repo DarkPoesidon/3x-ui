@@ -666,7 +666,27 @@ func (s *SubService) genTemplatedRemark(inbound *model.Inbound, client model.Cli
 	if out := expandRemarkVars(tmpl, ctx); strings.TrimSpace(out) != "" {
 		return out
 	}
-	return ctx.configName()
+	return ctx.fallbackName()
+}
+
+// fallbackName is the last resort when a template renders to nothing at all,
+// which happens when the inbound carries no remark and every token that
+// survived is one of the first-link-only ones -- EMAIL among them, so the
+// second link of a client whose inbounds are unnamed comes out blank.
+//
+// A nameless link is worse than an ugly one. Client apps key their proxy list
+// by name, so several nameless links from one subscription collapse into a
+// single entry and the operator sees one inbound where they configured two.
+// The tag is always set and unique per inbound, which is enough to keep them
+// apart.
+func (ctx remarkContext) fallbackName() string {
+	if ctx.inbound == nil {
+		return ""
+	}
+	if name := strings.TrimSpace(ctx.inbound.Remark); name != "" {
+		return name
+	}
+	return ctx.inbound.Tag
 }
 
 // genHostRemark builds one host endpoint's remark for a specific client. With a

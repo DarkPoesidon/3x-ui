@@ -202,15 +202,17 @@ func TestAnIPCertificateNamesTheInboundByAddress(t *testing.T) {
 	}
 }
 
+// The operator's choice wins over the derived one, as long as the certificate
+// actually covers it -- a name it does not cover is refused outright.
 func TestAnExplicitSniSurvivesCertificateAdoption(t *testing.T) {
-	cert, key := writeCert(t, []string{"panel.example.com"}, nil)
+	cert, key := writeCert(t, []string{"panel.example.com", "node.example.com"}, nil)
 	withPanelCert(t, cert, key)
 
-	ib := &model.Inbound{Protocol: model.AnyTLS, Settings: `{"sni":"chosen.example.com"}`}
+	ib := &model.Inbound{Protocol: model.AnyTLS, Settings: `{"sni":"node.example.com"}`}
 	if err := prepareAnytlsSettings(ib, true); err != nil {
 		t.Fatalf("prepare: %v", err)
 	}
-	if got := settingsOf(t, ib)["sni"]; got != "chosen.example.com" {
+	if got := settingsOf(t, ib)["sni"]; got != "node.example.com" {
 		t.Fatalf("an explicit sni must win, got %v", got)
 	}
 }
@@ -286,5 +288,61 @@ func TestEditingDoesNotReapplyAnytlsDefaults(t *testing.T) {
 	}
 	if got := settingsOf(t, ib); got["forward"] != nil || got["paddingMode"] != nil {
 		t.Fatalf("an edit must leave the settings alone, got %v", got)
+	}
+}
+
+// The mismatch that made a real deployment fail: a certificate was adopted for
+// the inbound while the SNI came from elsewhere, so the node served a valid
+// certificate for a name the client never asked about and every client that
+// checks the name dropped the handshake.
+func TestAnytlsRefusesAnSniTheCertificateDoesNotCover(t *testing.T) {
+	cert, key := writeCert(t, nil, []net.IP{net.ParseIP("203.0.113.7")})
+	if err := database.InitDB(filepath.Join(t.TempDir(), "x-ui.db")); err != nil {
+		t.Fatalf("init db: %v", err)
+	}
+	t.Cleanup(func() { _ = database.CloseDB() })
+
+	ib := &model.Inbound{Protocol: model.AnyTLS, Settings: settingsJSON(t, map[string]any{
+		"certFile": cert, "keyFile": key, "sni": "cdn.invented.com",
+	})}
+	err := prepareAnytlsSettings(ib, false)
+	if err == nil {
+		t.Fatal("expected a rejection")
+	}
+	for _, want := range []string{"cdn.invented.com", "203.0.113.7"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Fatalf("the error must name %q, got %v", want, err)
+		}
+	}
+}
+
+func TestAnytlsAcceptsAnSniTheCertificateCovers(t *testing.T) {
+	cert, key := writeCert(t, []string{"panel.example.com"}, nil)
+	if err := database.InitDB(filepath.Join(t.TempDir(), "x-ui.db")); err != nil {
+		t.Fatalf("init db: %v", err)
+	}
+	t.Cleanup(func() { _ = database.CloseDB() })
+
+	ib := &model.Inbound{Protocol: model.AnyTLS, Settings: settingsJSON(t, map[string]any{
+		"certFile": cert, "keyFile": key, "sni": "panel.example.com",
+	})}
+	if err := prepareAnytlsSettings(ib, false); err != nil {
+		t.Fatalf("a matching name must be accepted: %v", err)
+	}
+}
+
+// A wildcard certificate legitimately covers a name it does not list verbatim.
+func TestAnytlsAcceptsAWildcardMatch(t *testing.T) {
+	cert, key := writeCert(t, []string{"*.example.com"}, nil)
+	if err := database.InitDB(filepath.Join(t.TempDir(), "x-ui.db")); err != nil {
+		t.Fatalf("init db: %v", err)
+	}
+	t.Cleanup(func() { _ = database.CloseDB() })
+
+	ib := &model.Inbound{Protocol: model.AnyTLS, Settings: settingsJSON(t, map[string]any{
+		"certFile": cert, "keyFile": key, "sni": "node.example.com",
+	})}
+	if err := prepareAnytlsSettings(ib, false); err != nil {
+		t.Fatalf("a wildcard match must be accepted: %v", err)
 	}
 }

@@ -5,7 +5,6 @@ import { useFormContext, useWatch } from 'react-hook-form';
 import { FormField } from '@/components/form/rhf';
 import { useOutboundTags } from '@/api/queries/useOutboundTags';
 import { ANYTLS_DEFAULT_FORWARD } from '@/lib/xray/inbound-defaults';
-import { RandomUtil } from '@/utils';
 
 export default function AnytlsFields() {
   const { t } = useTranslation();
@@ -20,10 +19,15 @@ export default function AnytlsFields() {
   // Fills everything an inbound needs to work without a domain. The fields stay
   // visible and editable afterwards: with AnyTLS a wrong value fails in ways
   // that are hard to trace, so seeing what was set is worth more than hiding it.
+  //
+  // The SNI is deliberately left empty rather than invented. The backend fills
+  // it from whichever certificate the inbound ends up serving, and a name that
+  // certificate does not cover is exactly the mismatch that makes clients drop
+  // the handshake with no usable error.
   const applyNoDomainDefaults = () => {
     const opts = { shouldDirty: true, shouldValidate: true } as const;
     setValue('port', 443, opts);
-    setValue('settings.sni', `cdn.${RandomUtil.randomLowerAndNum(10)}.com`, opts);
+    setValue('settings.sni', '', opts);
     setValue('settings.certFile', '', opts);
     setValue('settings.keyFile', '', opts);
     setValue('settings.forward', ANYTLS_DEFAULT_FORWARD, opts);

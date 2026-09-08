@@ -56,6 +56,18 @@ func prepareAnytlsSettings(inbound *model.Inbound, isNew bool) error {
 		}
 	}
 
+	// A certificate the SNI does not match is worse than none: the node serves
+	// it, the client asks for a name it does not cover, and the handshake dies
+	// with a BadCertificate alert the operator has no way to trace. Refuse it
+	// here instead, where the reason can name both halves.
+	if certFile != "" {
+		if sni := settingsString(parsed, "sni"); sni != "" {
+			if err := certificateCovers(certFile, sni); err != nil {
+				return err
+			}
+		}
+	}
+
 	switch anytls.PaddingModeOf(settingsString(parsed, "paddingMode"), settingsString(parsed, "paddingScheme")) {
 	case anytls.PaddingModeCustom:
 		if err := anytls.ValidateScheme(settingsString(parsed, "paddingSchemeText")); err != nil {
@@ -70,39 +82,72 @@ func prepareAnytlsSettings(inbound *model.Inbound, isNew bool) error {
 	return nil
 }
 
+// certificateCovers reports whether the leaf certificate is valid for the name
+// clients will ask for. Unreadable or unparsable certificates are left to the
+// file checks above rather than reported as a name problem.
+func certificateCovers(certPath, sni string) error {
+	leaf := leafCertificate(certPath)
+	if leaf == nil {
+		return nil
+	}
+	if err := leaf.VerifyHostname(sni); err != nil {
+		names := append([]string{}, leaf.DNSNames...)
+		for _, ip := range leaf.IPAddresses {
+			names = append(names, ip.String())
+		}
+		covered := strings.Join(names, ", ")
+		if covered == "" {
+			covered = "no names at all"
+		}
+		return common.NewErrorf(
+			"anytls: the certificate does not cover the TLS SNI %q (it covers %s), so clients will reject the connection",
+			sni, covered)
+	}
+	return nil
+}
+
 // certificateName is a name the leaf certificate actually covers, preferring a
 // DNS name over an IP: clients do not send SNI for an IP literal, so a DNS name
 // is what a client can both send and verify against.
 func certificateName(certPath string) string {
+	leaf := leafCertificate(certPath)
+	if leaf == nil {
+		return ""
+	}
+	for _, name := range leaf.DNSNames {
+		if name != "" && !strings.HasPrefix(name, "*") {
+			return name
+		}
+	}
+	for _, ip := range leaf.IPAddresses {
+		return ip.String()
+	}
+	return ""
+}
+
+// leafCertificate parses the first certificate in a PEM chain; the rest name
+// CAs and say nothing about which hosts the inbound can serve.
+func leafCertificate(certPath string) *x509.Certificate {
 	raw, err := os.ReadFile(certPath)
 	if err != nil {
-		return ""
+		return nil
 	}
 	for len(raw) > 0 {
 		var block *pem.Block
 		block, raw = pem.Decode(raw)
 		if block == nil {
-			return ""
+			return nil
 		}
 		if block.Type != "CERTIFICATE" {
 			continue
 		}
 		leaf, parseErr := x509.ParseCertificate(block.Bytes)
 		if parseErr != nil {
-			return ""
+			return nil
 		}
-		for _, name := range leaf.DNSNames {
-			if name != "" && !strings.HasPrefix(name, "*") {
-				return name
-			}
-		}
-		for _, ip := range leaf.IPAddresses {
-			return ip.String()
-		}
-		// Only the leaf is worth reading; the rest of the chain names CAs.
-		return ""
+		return leaf
 	}
-	return ""
+	return nil
 }
 
 func settingsString(parsed map[string]any, key string) string {
