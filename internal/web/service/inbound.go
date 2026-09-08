@@ -840,10 +840,19 @@ func (s *InboundService) normalizeMtprotoSecret(inbound *model.Inbound) {
 	}
 }
 
-// mtprotoRoutesThroughXray reports whether an mtproto inbound is configured to
+// sidecarRoutesThroughXray reports whether a sidecar inbound is configured to
 // egress through the core's router (the loopback SOCKS bridge in §xray.go).
-func mtprotoRoutesThroughXray(inbound *model.Inbound) bool {
-	if inbound == nil || inbound.Protocol != model.MTProto {
+func sidecarRoutesThroughXray(inbound *model.Inbound) bool {
+	if inbound == nil {
+		return false
+	}
+	// Both sidecar protocols dial out through a loopback SOCKS bridge that
+	// lives in the generated Xray config. AnyTLS was added later and never
+	// reached this check, so creating a routed anytls inbound left the bridge
+	// out of the config: the node came up, authenticated, opened the stream,
+	// and then every dial failed with a connection refused against a port
+	// nothing was listening on.
+	if inbound.Protocol != model.MTProto && inbound.Protocol != model.AnyTLS {
 		return false
 	}
 	var parsed struct {
@@ -1197,10 +1206,10 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 		postCommitApply()
 	}
 
-	// A routed mtproto inbound is not an Xray inbound itself, so the runtime
-	// push above only (re)starts the mtg sidecar. The egress SOCKS bridge lives
-	// in the generated config, so force a regen to wire it in.
-	if mtprotoRoutesThroughXray(inbound) {
+	// A routed sidecar inbound is not an Xray inbound itself, so the runtime
+	// push above only (re)starts the sidecar. The egress SOCKS bridge lives in
+	// the generated config, so force a regen to wire it in.
+	if sidecarRoutesThroughXray(inbound) {
 		needRestart = true
 	}
 
@@ -1309,7 +1318,7 @@ func (s *InboundService) DelInbound(id int) (bool, error) {
 		}
 	}
 	// Drop the egress SOCKS bridge a routed mtproto inbound left in the config.
-	if mtprotoRoutesThroughXray(&ib) {
+	if sidecarRoutesThroughXray(&ib) {
 		needRestart = true
 	}
 	return needRestart, nil
@@ -1460,7 +1469,7 @@ func (s *InboundService) SetInboundEnable(id int, enable bool) (bool, error) {
 		return false, nil
 	}
 
-	if mtprotoRoutesThroughXray(inbound) {
+	if sidecarRoutesThroughXray(inbound) {
 		needRestart = true
 	}
 
@@ -1532,7 +1541,7 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	// overwritten with the new values further down, then ensure a routed
 	// inbound keeps a stable egress port (reusing the one already stored).
 	oldProtocol := oldInbound.Protocol
-	oldRoutedMtproto := mtprotoRoutesThroughXray(oldInbound)
+	oldRoutedSidecar := sidecarRoutesThroughXray(oldInbound)
 	if err := s.normalizeMtprotoXrayPort(inbound, oldInbound.Settings); err != nil {
 		return inbound, false, err
 	}
@@ -1761,7 +1770,7 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		// (Re)generate the Xray config whenever routing was or is now enabled, so
 		// the egress SOCKS bridge is added, moved, or dropped to match the new
 		// settings.
-		if mtprotoRoutesThroughXray(inbound) || oldRoutedMtproto {
+		if sidecarRoutesThroughXray(inbound) || oldRoutedSidecar {
 			needRestart = true
 		}
 		return nil

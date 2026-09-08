@@ -22,7 +22,7 @@ func TestMtprotoRoutesThroughXray(t *testing.T) {
 		"nil":         {nil, false},
 	}
 	for name, c := range cases {
-		if got := mtprotoRoutesThroughXray(c.ib); got != c.want {
+		if got := sidecarRoutesThroughXray(c.ib); got != c.want {
 			t.Fatalf("%s: got %v want %v", name, got, c.want)
 		}
 	}
