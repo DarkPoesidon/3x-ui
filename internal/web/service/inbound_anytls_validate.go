@@ -32,7 +32,7 @@ func prepareAnytlsSettings(inbound *model.Inbound, isNew bool) error {
 	}
 
 	if isNew {
-		adoptPanelCertificate(inbound, parsed)
+		applyAnytlsDefaults(inbound, parsed)
 	}
 
 	certFile := settingsString(parsed, "certFile")
@@ -110,6 +110,37 @@ func settingsString(parsed map[string]any, key string) string {
 	return strings.TrimSpace(v)
 }
 
+// DefaultAnytlsForward is where a connection failing authentication is relayed,
+// which is what makes the port answer an active prober like an ordinary web
+// server. A default means the defence is on for everyone rather than only for
+// operators who knew to look for the field.
+const DefaultAnytlsForward = "https://www.bing.com"
+
+// applyAnytlsDefaults fills in what a new inbound needs to be safe and reachable
+// but did not ask for.
+//
+// These used to live only in the panel form, so an inbound created through the
+// API came up with the sidecar's built-in padding scheme -- fingerprintable by
+// shape, its first record always exactly 30 bytes -- and no probe fallback at
+// all. Where an inbound was created should not decide how exposed it is.
+func applyAnytlsDefaults(inbound *model.Inbound, parsed map[string]any) {
+	changed := adoptPanelCertificate(parsed)
+	if _, ok := parsed["paddingMode"]; !ok {
+		parsed["paddingMode"] = anytls.PaddingModeStrong
+		changed = true
+	}
+	if settingsString(parsed, "forward") == "" {
+		parsed["forward"] = DefaultAnytlsForward
+		changed = true
+	}
+	if !changed {
+		return
+	}
+	if bs, err := json.MarshalIndent(parsed, "", "  "); err == nil {
+		inbound.Settings = string(bs)
+	}
+}
+
 // adoptPanelCertificate gives a new anytls inbound the certificate the panel is
 // already serving, when it has one and the operator supplied none.
 //
@@ -120,24 +151,24 @@ func settingsString(parsed map[string]any, key string) string {
 // inbound does not work" with nothing to point at. A normal install already has
 // a trusted certificate for its own panel, so defaulting to it makes the config
 // this inbound generates work in every client rather than only the lenient ones.
-func adoptPanelCertificate(inbound *model.Inbound, parsed map[string]any) {
+func adoptPanelCertificate(parsed map[string]any) bool {
 	if settingsString(parsed, "certFile") != "" || settingsString(parsed, "keyFile") != "" {
-		return
+		return false
 	}
 	settings := &SettingService{}
 	cert, err := settings.GetCertFile()
 	if err != nil || strings.TrimSpace(cert) == "" {
-		return
+		return false
 	}
 	key, err := settings.GetKeyFile()
 	if err != nil || strings.TrimSpace(key) == "" {
-		return
+		return false
 	}
 	// A path the panel stored but that no longer resolves would only trade the
 	// self-signed fallback for an inbound that cannot start at all.
 	for _, path := range []string{cert, key} {
 		if _, statErr := os.Stat(path); statErr != nil {
-			return
+			return false
 		}
 	}
 
@@ -152,10 +183,6 @@ func adoptPanelCertificate(inbound *model.Inbound, parsed map[string]any) {
 			parsed["sni"] = name
 		}
 	}
-	bs, err := json.MarshalIndent(parsed, "", "  ")
-	if err != nil {
-		return
-	}
-	inbound.Settings = string(bs)
 	logger.Infof("anytls: new inbound adopted the panel's certificate (%s); clients will verify it instead of skipping verification", cert)
+	return true
 }

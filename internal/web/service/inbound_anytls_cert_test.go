@@ -15,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/anytls"
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 )
@@ -225,5 +226,65 @@ func TestWildcardCertificateLeavesTheSniAlone(t *testing.T) {
 	}
 	if got := settingsOf(t, ib)["sni"]; got != nil {
 		t.Fatalf("a wildcard must not become the sni, got %v", got)
+	}
+}
+
+// Where an inbound was created must not decide how exposed it is: these used to
+// live only in the panel form, so an API-created inbound came up on the
+// sidecar's fingerprintable built-in scheme with no probe fallback at all.
+func TestNewAnytlsInboundGetsTheHardenedDefaults(t *testing.T) {
+	if err := database.InitDB(filepath.Join(t.TempDir(), "x-ui.db")); err != nil {
+		t.Fatalf("init db: %v", err)
+	}
+	t.Cleanup(func() { _ = database.CloseDB() })
+
+	ib := &model.Inbound{Protocol: model.AnyTLS, Settings: `{"clients":[]}`}
+	if err := prepareAnytlsSettings(ib, true); err != nil {
+		t.Fatalf("prepare: %v", err)
+	}
+	got := settingsOf(t, ib)
+	if got["paddingMode"] != anytls.PaddingModeStrong {
+		t.Errorf("paddingMode = %v, want the hardened scheme", got["paddingMode"])
+	}
+	if got["forward"] != DefaultAnytlsForward {
+		t.Errorf("forward = %v, want a probe fallback", got["forward"])
+	}
+}
+
+func TestAnytlsDefaultsNeverOverrideAChoice(t *testing.T) {
+	if err := database.InitDB(filepath.Join(t.TempDir(), "x-ui.db")); err != nil {
+		t.Fatalf("init db: %v", err)
+	}
+	t.Cleanup(func() { _ = database.CloseDB() })
+
+	ib := &model.Inbound{
+		Protocol: model.AnyTLS,
+		Settings: `{"paddingMode":"default","forward":"http://127.0.0.1:8080"}`,
+	}
+	if err := prepareAnytlsSettings(ib, true); err != nil {
+		t.Fatalf("prepare: %v", err)
+	}
+	got := settingsOf(t, ib)
+	if got["paddingMode"] != "default" {
+		t.Errorf("an explicit padding mode must win, got %v", got["paddingMode"])
+	}
+	if got["forward"] != "http://127.0.0.1:8080" {
+		t.Errorf("an explicit forward must win, got %v", got["forward"])
+	}
+}
+
+// An edit must not quietly re-add defaults the operator removed.
+func TestEditingDoesNotReapplyAnytlsDefaults(t *testing.T) {
+	if err := database.InitDB(filepath.Join(t.TempDir(), "x-ui.db")); err != nil {
+		t.Fatalf("init db: %v", err)
+	}
+	t.Cleanup(func() { _ = database.CloseDB() })
+
+	ib := &model.Inbound{Protocol: model.AnyTLS, Settings: `{"clients":[]}`}
+	if err := prepareAnytlsSettings(ib, false); err != nil {
+		t.Fatalf("prepare: %v", err)
+	}
+	if got := settingsOf(t, ib); got["forward"] != nil || got["paddingMode"] != nil {
+		t.Fatalf("an edit must leave the settings alone, got %v", got)
 	}
 }
