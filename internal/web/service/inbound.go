@@ -980,7 +980,7 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 	if err := s.normalizeMtprotoXrayPort(inbound, ""); err != nil {
 		return inbound, false, err
 	}
-	if err := validateAnytlsSettings(inbound); err != nil {
+	if err := prepareAnytlsSettings(inbound, true); err != nil {
 		return inbound, false, err
 	}
 	if err := s.normalizeAmneziaWGSettings(inbound); err != nil {
@@ -1536,7 +1536,7 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	if err := s.normalizeMtprotoXrayPort(inbound, oldInbound.Settings); err != nil {
 		return inbound, false, err
 	}
-	if err := validateAnytlsSettings(inbound); err != nil {
+	if err := prepareAnytlsSettings(inbound, false); err != nil {
 		return inbound, false, err
 	}
 
