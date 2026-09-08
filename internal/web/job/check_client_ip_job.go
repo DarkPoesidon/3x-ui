@@ -33,10 +33,14 @@ type IPWithTimestamp struct {
 // simply skips the run (the bundled core always supports it).
 type CheckClientIpJob struct {
 	disAllowedIps []string
-	bannedSeen    map[string]int64
-	xrayService   service.XrayService
-	allowlist     ipLimitAllowlist
-	lastIpPrune   int64
+	// sharedIps are the addresses this scan saw serving more than one client.
+	// They are infrastructure, not a person, so they are never handed to
+	// fail2ban -- see banIsCollateral.
+	sharedIps   map[string]struct{}
+	bannedSeen  map[string]int64
+	xrayService service.XrayService
+	allowlist   ipLimitAllowlist
+	lastIpPrune int64
 }
 
 var job *CheckClientIpJob
@@ -282,6 +286,8 @@ func (j *CheckClientIpJob) processObserved(observed map[string]map[string]int64,
 	}
 	sort.Strings(emails)
 
+	j.sharedIps = sharedAddresses(observed)
+
 	limitByEmail := j.loadClientLimits(emails)
 	inboundByEmail := j.loadInboundsByEmails(emails)
 	ipRowByEmail := j.loadClientIpRows(emails)
@@ -435,6 +441,41 @@ func mergeClientIps(old, new []IPWithTimestamp, staleCutoff int64, newAlwaysLive
 
 // selectIpsToBan splits the live IPs (sorted oldest-first by partitionLiveIps)
 // into the newest `limit` entries to keep and the older remainder to ban.
+// banIsCollateral reports whether banning an address would cut people who have
+// nothing to do with the client that tripped the limit.
+//
+// Behind a CDN the address Xray sees belongs to the intermediary, not the
+// visitor: one client roaming Cloudflare's edges looks like hundreds of IPs and
+// trips its own limit, and each ban then blocks every other user arriving
+// through that edge. A relay or a shared NAT has the same shape. The signal is
+// the same in all three cases -- the address is serving other clients too --
+// and it needs no vendor IP list to spot.
+//
+// The client is still disconnected either way, so the limit is enforced; only
+// the ban, which cannot reach the right person anyway, is withheld.
+func (j *CheckClientIpJob) banIsCollateral(ip string) bool {
+	_, shared := j.sharedIps[ip]
+	return shared
+}
+
+// sharedAddresses returns the addresses this scan saw under more than one
+// client email.
+func sharedAddresses(observed map[string]map[string]int64) map[string]struct{} {
+	owners := make(map[string]int, len(observed))
+	for _, ips := range observed {
+		for ip := range ips {
+			owners[ip]++
+		}
+	}
+	shared := make(map[string]struct{})
+	for ip, n := range owners {
+		if n > 1 {
+			shared[ip] = struct{}{}
+		}
+	}
+	return shared
+}
+
 func selectIpsToBan(live []IPWithTimestamp, limit int) (kept, banned []IPWithTimestamp) {
 	if limit <= 0 || len(live) <= limit {
 		return live, nil
@@ -558,6 +599,12 @@ func (j *CheckClientIpJob) updateInboundClientIps(tx *gorm.DB, inboundClientIps 
 		// don't change the wording.
 		for _, ipTime := range actionable {
 			j.disAllowedIps = append(j.disAllowedIps, ipTime.IP)
+			if j.banIsCollateral(ipTime.IP) {
+				// The client is still disconnected above; only the ban is
+				// skipped, because this address is not theirs to lose.
+				logger.Warningf("[LIMIT_IP] %s: not banning %s -- it is serving other clients too, so it is a CDN edge, relay or shared NAT rather than this client's address. Set the inbound's real-client-IP source (see docs/real-client-ip.md) to make the limit count actual visitors.", clientEmail, ipTime.IP)
+				continue
+			}
 			ipLogger.Printf("[LIMIT_IP] Email = %s || Disconnecting OLD IP = %s || Timestamp = %d", clientEmail, ipTime.IP, ipTime.Timestamp)
 		}
 	}
