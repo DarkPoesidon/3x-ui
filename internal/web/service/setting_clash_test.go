@@ -50,8 +50,13 @@ func TestSubscriptionAutoDetectDefaultsWithoutStoredRows(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if clashEnabled || jsonEnabled || jsonAlwaysArray {
-		t.Fatalf("missing subscription flags must default off: clashAuto=%v jsonAuto=%v jsonAlwaysArray=%v", clashEnabled, jsonEnabled, jsonAlwaysArray)
+	// Clash auto-detect is the exception: it defaults on, because mihomo cannot
+	// read the base64 link list and would otherwise receive a blob it rejects.
+	if !clashEnabled {
+		t.Fatal("a missing subClashAutoDetect row must inherit the on default")
+	}
+	if jsonEnabled || jsonAlwaysArray {
+		t.Fatalf("missing subscription flags must default off: jsonAuto=%v jsonAlwaysArray=%v", jsonEnabled, jsonAlwaysArray)
 	}
 	if clashRegex != "" {
 		t.Fatalf("missing Clash regex = %q, want empty inherited value", clashRegex)
@@ -102,8 +107,11 @@ func TestUpdateAllSettingPersistsClashSubscriptionSettings(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if settings.SubClashAutoDetect {
-		t.Fatal("subClashAutoDetect default = true, want false")
+	// On by default: mihomo cannot read the base64 link list, so without the
+	// auto-detect it receives a blob it rejects and the subscription looks
+	// broken to the operator.
+	if !settings.SubClashAutoDetect {
+		t.Fatal("subClashAutoDetect default = false, want true")
 	}
 	if settings.SubJsonAutoDetect {
 		t.Fatal("subJsonAutoDetect default = true, want false")

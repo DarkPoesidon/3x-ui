@@ -1,11 +1,19 @@
 package service
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/json"
+	"encoding/pem"
+	"math/big"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
@@ -130,5 +138,92 @@ func TestAnytlsRejectsAHalfConfiguredPair(t *testing.T) {
 	err := prepareAnytlsSettings(ib, false)
 	if err == nil || !strings.Contains(err.Error(), "both") {
 		t.Fatalf("expected a rejection naming both halves, got %v", err)
+	}
+}
+
+// writeCert emits a real leaf certificate so the SNI derivation is exercised
+// against x509 parsing rather than a stand-in string.
+func writeCert(t *testing.T, dnsNames []string, ips []net.IP) (string, string) {
+	t.Helper()
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("generate key: %v", err)
+	}
+	tmpl := &x509.Certificate{
+		SerialNumber: big.NewInt(1),
+		Subject:      pkix.Name{CommonName: "leaf"},
+		NotBefore:    time.Now().Add(-time.Hour),
+		NotAfter:     time.Now().Add(time.Hour),
+		DNSNames:     dnsNames,
+		IPAddresses:  ips,
+	}
+	der, err := x509.CreateCertificate(rand.Reader, tmpl, tmpl, &key.PublicKey, key)
+	if err != nil {
+		t.Fatalf("create certificate: %v", err)
+	}
+	dir := t.TempDir()
+	certPath := filepath.Join(dir, "fullchain.pem")
+	keyPath := filepath.Join(dir, "privkey.pem")
+	if err := os.WriteFile(certPath, pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der}), 0o600); err != nil {
+		t.Fatalf("write cert: %v", err)
+	}
+	if err := os.WriteFile(keyPath, []byte("key"), 0o600); err != nil {
+		t.Fatalf("write key: %v", err)
+	}
+	return certPath, keyPath
+}
+
+// Adopting the pair without naming it leaves the handshake failing for the same
+// reason it did before: the client verifies against the name it asked for.
+func TestAdoptedCertificateAlsoNamesTheInbound(t *testing.T) {
+	cert, key := writeCert(t, []string{"panel.example.com"}, nil)
+	withPanelCert(t, cert, key)
+
+	ib := &model.Inbound{Protocol: model.AnyTLS, Settings: `{}`}
+	if err := prepareAnytlsSettings(ib, true); err != nil {
+		t.Fatalf("prepare: %v", err)
+	}
+	if got := settingsOf(t, ib)["sni"]; got != "panel.example.com" {
+		t.Fatalf("sni = %v, want the certificate's DNS name", got)
+	}
+}
+
+func TestAnIPCertificateNamesTheInboundByAddress(t *testing.T) {
+	cert, key := writeCert(t, nil, []net.IP{net.ParseIP("203.0.113.7")})
+	withPanelCert(t, cert, key)
+
+	ib := &model.Inbound{Protocol: model.AnyTLS, Settings: `{}`}
+	if err := prepareAnytlsSettings(ib, true); err != nil {
+		t.Fatalf("prepare: %v", err)
+	}
+	if got := settingsOf(t, ib)["sni"]; got != "203.0.113.7" {
+		t.Fatalf("sni = %v, want the certificate's IP", got)
+	}
+}
+
+func TestAnExplicitSniSurvivesCertificateAdoption(t *testing.T) {
+	cert, key := writeCert(t, []string{"panel.example.com"}, nil)
+	withPanelCert(t, cert, key)
+
+	ib := &model.Inbound{Protocol: model.AnyTLS, Settings: `{"sni":"chosen.example.com"}`}
+	if err := prepareAnytlsSettings(ib, true); err != nil {
+		t.Fatalf("prepare: %v", err)
+	}
+	if got := settingsOf(t, ib)["sni"]; got != "chosen.example.com" {
+		t.Fatalf("an explicit sni must win, got %v", got)
+	}
+}
+
+// A wildcard is a name no client sends verbatim, so it cannot stand in as SNI.
+func TestWildcardCertificateLeavesTheSniAlone(t *testing.T) {
+	cert, key := writeCert(t, []string{"*.example.com"}, nil)
+	withPanelCert(t, cert, key)
+
+	ib := &model.Inbound{Protocol: model.AnyTLS, Settings: `{}`}
+	if err := prepareAnytlsSettings(ib, true); err != nil {
+		t.Fatalf("prepare: %v", err)
+	}
+	if got := settingsOf(t, ib)["sni"]; got != nil {
+		t.Fatalf("a wildcard must not become the sni, got %v", got)
 	}
 }

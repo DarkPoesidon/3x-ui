@@ -1,7 +1,9 @@
 package service
 
 import (
+	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
 	"os"
 	"strings"
 
@@ -68,6 +70,41 @@ func prepareAnytlsSettings(inbound *model.Inbound, isNew bool) error {
 	return nil
 }
 
+// certificateName is a name the leaf certificate actually covers, preferring a
+// DNS name over an IP: clients do not send SNI for an IP literal, so a DNS name
+// is what a client can both send and verify against.
+func certificateName(certPath string) string {
+	raw, err := os.ReadFile(certPath)
+	if err != nil {
+		return ""
+	}
+	for len(raw) > 0 {
+		var block *pem.Block
+		block, raw = pem.Decode(raw)
+		if block == nil {
+			return ""
+		}
+		if block.Type != "CERTIFICATE" {
+			continue
+		}
+		leaf, parseErr := x509.ParseCertificate(block.Bytes)
+		if parseErr != nil {
+			return ""
+		}
+		for _, name := range leaf.DNSNames {
+			if name != "" && !strings.HasPrefix(name, "*") {
+				return name
+			}
+		}
+		for _, ip := range leaf.IPAddresses {
+			return ip.String()
+		}
+		// Only the leaf is worth reading; the rest of the chain names CAs.
+		return ""
+	}
+	return ""
+}
+
 func settingsString(parsed map[string]any, key string) string {
 	v, _ := parsed[key].(string)
 	return strings.TrimSpace(v)
@@ -106,6 +143,15 @@ func adoptPanelCertificate(inbound *model.Inbound, parsed map[string]any) {
 
 	parsed["certFile"] = strings.TrimSpace(cert)
 	parsed["keyFile"] = strings.TrimSpace(key)
+	// A certificate the client cannot match is no better than a self-signed
+	// one: it verifies against the name the client asked for, so adopting the
+	// pair without also naming it leaves the handshake failing for exactly the
+	// same reason it did before.
+	if settingsString(parsed, "sni") == "" {
+		if name := certificateName(cert); name != "" {
+			parsed["sni"] = name
+		}
+	}
 	bs, err := json.MarshalIndent(parsed, "", "  ")
 	if err != nil {
 		return
