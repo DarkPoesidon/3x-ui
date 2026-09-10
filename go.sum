@@ -31,8 +31,8 @@ github.com/gabriel-vasile/mimetype v1.4.15 h1:05iP/CYtZ/w455R/KZM6rZ5ieAdh99UPtd
 github.com/gabriel-vasile/mimetype v1.4.15/go.mod h1:azpTcoLcDZRNgFou5j+APrqQx9HqVPWa6ijYQIIVswQ=
 github.com/ghodss/yaml v1.0.1-0.20220118164431-d8423dcdf344 h1:Arcl6UOIS/kgO2nW3A65HN+7CMjSDP/gofXL4CZt1V4=
 github.com/ghodss/yaml v1.0.1-0.20220118164431-d8423dcdf344/go.mod h1:GIjDIg/heH5DOkXY3YJ/wNhfHsQHoXGjl8G8amsYQ1I=
-github.com/gin-contrib/gzip v1.2.6 h1:OtN8DplD5DNZCSLAnQ5HxRkD2qZ5VU+JhOrcfJrcRvg=
-github.com/gin-contrib/gzip v1.2.6/go.mod h1:BQy8/+JApnRjAVUplSGZiVtD2k8GmIE2e9rYu/hLzzU=
+github.com/gin-contrib/gzip v1.2.7 h1:eQYOd81DpSU24TYYYNPzATrl7Hv3hGyzQilt3fGkxoc=
+github.com/gin-contrib/gzip v1.2.7/go.mod h1:mfl5NDloGODrP2QryKtW37zsWrLkJkp/Y3iHTw0ZDy8=
 github.com/gin-contrib/sessions v1.1.0 h1:00mhHfNEGF5sP2fwxa98aRqj1FOJdL6IkR86n2hOiBo=
 github.com/gin-contrib/sessions v1.1.0/go.mod h1:TyYZDIs6qCQg2SOoYPgMT9pAkmZceVNEJMcv5qbIy60=
 github.com/gin-contrib/sse v1.1.1 h1:uGYpNwTacv5R68bSGMapo62iLTRa9l5zxGCps4hK6ko=
